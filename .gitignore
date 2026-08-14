@@ -1,0 +1,7 @@
+*.o
+*.d
+atom
+
+# per-target work trees and collected artifacts
+build/
+dist/
