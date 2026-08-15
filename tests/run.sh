@@ -68,6 +68,37 @@ echo "atom test suite"
 echo
 
 # --------------------------------------------------------------------------
+echo "help"
+
+OUT=$("$ATOM" --help 2>&1); RC=$?
+assert_status "--help succeeds" 0 $RC
+assert_contains "the overview lists commands" "$OUT" "build every target"
+assert_contains "it points at per-command help" "$OUT" "atom <command> --help"
+
+OUT=$("$ATOM" build --help 2>&1); RC=$?
+assert_status "a command has its own help" 0 $RC
+assert_contains "it shows that command's usage" "$OUT" "usage: atom build"
+assert_contains "it lists that command's flags" "$OUT" "--no-cache"
+case "$OUT" in
+    *"--dry-run"*) bad "build help hides publish-only flags" ;;
+    *)             ok  "build help hides publish-only flags" ;;
+esac
+
+OUT=$("$ATOM" help publish 2>&1)
+assert_contains "\`atom help <command>\` works too" "$OUT" "usage: atom publish"
+
+# An option the command does not take is a mistake, not something to ignore.
+OUT=$("$ATOM" package --no-cache 2>&1); RC=$?
+assert_status "an inapplicable flag is refused" 2 $RC
+assert_contains "it names the command and the flag" "$OUT" "package does not take --no-cache"
+
+OUT=$("$ATOM" nosuchcommand 2>&1); RC=$?
+assert_status "an unknown command is refused" 2 $RC
+assert_contains "it says so" "$OUT" "no such command"
+
+echo
+
+# --------------------------------------------------------------------------
 echo "init"
 
 D="$TMP/init-make"; mkdir -p "$D"; touch "$D/Makefile"
