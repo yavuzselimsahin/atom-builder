@@ -1,7 +1,7 @@
 ---
 title: Reference
 description: Every command, flag and manifest key
-order: 4
+order: 5
 ---
 
 The complete surface, for looking things up rather than reading through.

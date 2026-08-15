@@ -27,7 +27,7 @@
     </header>
     <div class="layout">
         <aside class="sidebar">
-            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/vs-actions/">Coming from CI</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
             <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
         </aside>
         <main>
@@ -44,6 +44,8 @@ to, in seconds, with no CI and no containers. What has been missing is the
 unglamorous work around that: isolating builds so they cannot corrupt each
 other, checking that what came out is what was asked for, archiving, checksums,
 and getting the result somewhere people can download it. That is atom.</p>
+<p>If you are arriving from a CI matrix, <a href="/atom-builder/vs-actions/">Coming from CI</a> puts the
+two side by side first.</p>
 <h2>The pipeline</h2>
 <pre><code>manifest → plan → BUILD ──→ VERIFY ──→ PACKAGE ──→ PUBLISH
 </code></pre>
@@ -82,7 +84,7 @@ anywhere you did not configure, and your signing credentials — when that lands
 
             </article>
             <nav class="post-nav">
-                <a class="prev" href="/atom-builder/quickstart/">Quickstart</a>
+                <a class="prev" href="/atom-builder/vs-actions/">Coming from CI</a>
                 <a class="next" href="/atom-builder/guide/manifest/">The manifest</a>
             </nav>
             <a class="edit" href="">Edit this page</a>

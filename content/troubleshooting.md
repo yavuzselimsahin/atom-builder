@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: What the errors mean and how to fix them
-order: 5
+order: 6
 ---
 
 atom tries to say what went wrong and what to do about it. This is the longer
@@ -114,6 +114,17 @@ output; it is usually a wrong package name or no network access.
 
 Docker is not running, or the image cannot be pulled, or Docker has no platform
 for that architecture.
+
+## Package
+
+### [package] include names assets, which is a directory
+
+`include` takes files, not directories. atom ships one binary per target, and
+the archive writers do not walk a tree, so a directory would otherwise land in
+the archive as a zero-byte file that looks fine until someone extracts it.
+
+List the files, or have your build produce a single archive and point
+`artifact` at that.
 
 ## Publish
 

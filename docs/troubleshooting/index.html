@@ -27,7 +27,7 @@
     </header>
     <div class="layout">
         <aside class="sidebar">
-            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/vs-actions/">Coming from CI</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
             <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
         </aside>
         <main>
@@ -103,6 +103,13 @@ output; it is usually a wrong package name or no network access.</p>
 <h3>could not start &lt;image&gt;</h3>
 <p>Docker is not running, or the image cannot be pulled, or Docker has no platform
 for that architecture.</p>
+<h2>Package</h2>
+<h3>[package] include names assets, which is a directory</h3>
+<p><code>include</code> takes files, not directories. atom ships one binary per target, and
+the archive writers do not walk a tree, so a directory would otherwise land in
+the archive as a zero-byte file that looks fine until someone extracts it.</p>
+<p>List the files, or have your build produce a single archive and point
+<code>artifact</code> at that.</p>
 <h2>Publish</h2>
 <h3>atomik-ssg-1.1.0-linux-arm64.tar.gz is missing — run <code>atom package</code> first</h3>
 <p>You are publishing archives that have not been made yet. If you just changed

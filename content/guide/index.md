@@ -1,7 +1,7 @@
 ---
 title: Guide
 description: How atom works, and how to make it fit your project
-order: 3
+order: 4
 ---
 
 The [Quickstart](/quickstart/) gets a project shipping. This section explains
@@ -17,6 +17,9 @@ to, in seconds, with no CI and no containers. What has been missing is the
 unglamorous work around that: isolating builds so they cannot corrupt each
 other, checking that what came out is what was asked for, archiving, checksums,
 and getting the result somewhere people can download it. That is atom.
+
+If you are arriving from a CI matrix, [Coming from CI](/vs-actions/) puts the
+two side by side first.
 
 ## The pipeline
 

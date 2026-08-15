@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming from CI</title>
+    <meta name="description" content="How atom compares to a GitHub Actions release workflow">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/vs-actions/">Coming from CI</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Coming from CI</h1>
+                <p>Most projects that ship binaries do it with a CI matrix. This is what that
+looks like beside atom, and where each one is the better answer.</p>
+<h2>The same release, twice</h2>
+<p>A typical Actions workflow for a C project that ships five platforms:</p>
+<pre><code class="language-yaml">name: Release
+on:
+  push:
+    tags: [&quot;v*&quot;]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: macos-latest
+            target: macos-arm64
+          - os: macos-13
+            target: macos-x86_64
+          - os: windows-latest
+            target: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make
+      - run: tar czf ${{ matrix.target }}.tar.gz myapp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ matrix.target }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - run: |
+          sha256sum */*.tar.gz &gt; SHA256SUMS
+          gh release create ${{ github.ref_name }} */*.tar.gz SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+</code></pre>
+<p>The same thing in atom:</p>
+<pre><code class="language-toml">[project]
+name    = &quot;myapp&quot;
+version = &quot;1.0.0&quot;
+
+[build]
+artifact = &quot;myapp&quot;
+
+[publish.github]
+repo = &quot;you/myapp&quot;
+
+[target.linux-x86_64]
+triple = &quot;x86_64-linux-musl&quot;
+
+[target.linux-arm64]
+triple = &quot;aarch64-linux-musl&quot;
+
+[target.macos-arm64]
+triple = &quot;aarch64-macos&quot;
+
+[target.macos-x86_64]
+triple = &quot;x86_64-macos&quot;
+
+[target.windows-x86_64]
+triple   = &quot;x86_64-windows-gnu&quot;
+artifact = &quot;myapp.exe&quot;
+make     = &quot;BIN=myapp.exe&quot;
+</code></pre>
+<pre><code class="language-bash">atom release &amp;&amp; atom publish
+</code></pre>
+<h2>Why the difference is so large</h2>
+<p>They are not doing the same thing.</p>
+<p><strong>Actions rents five machines.</strong> <code>windows-latest</code> is a full Windows Server VM
+provisioned from scratch for the job; <code>macos-latest</code> is real Apple hardware,
+because macOS cannot legally be virtualised anywhere else. Each one compiles
+natively for itself. Nothing is cross-compiled — the matrix <em>is</em> the mechanism.</p>
+<p><strong>atom uses one machine and cross-compiles.</strong> The five targets are five
+invocations of a compiler that can already emit code for all of them.</p>
+<p>That is the whole trade. One is renting hardware; the other is asking the
+toolchain to do what it was already able to do.</p>
+<h2>Where each one wins</h2>
+<table>
+<thead><tr><th></th><th>GitHub Actions</th><th>atom</th></tr></thead>
+<tbody>
+<tr><td>Time for five targets</td><td>minutes, mostly queueing and provisioning</td><td>seconds</td></tr>
+<tr><td>Feedback loop</td><td>push, wait, read a log</td><td>local, immediate</td></tr>
+<tr><td>Runs on a fork or offline</td><td>no</td><td>yes</td></tr>
+<tr><td>Config</td><td>~40 lines of YAML</td><td>~20 lines of TOML</td></tr>
+<tr><td>Cost</td><td>free for public repos, metered for private</td><td>your laptop</td></tr>
+<tr><td>Runs your test suite on each OS</td><td><strong>yes</strong></td><td>no — it checks that binaries start</td></tr>
+<tr><td>Builds things that cannot cross-compile</td><td><strong>yes</strong></td><td>no</td></tr>
+<tr><td>Gates pull requests</td><td><strong>yes</strong></td><td>no</td></tr>
+<tr><td>Builds on a schedule, or on someone else's push</td><td><strong>yes</strong></td><td>no</td></tr>
+</tbody>
+</table>
+<h2>When you still want CI</h2>
+<p>atom is not trying to replace continuous integration. It replaces the <em>release
+build</em> part of it — which for many projects is the only part that needed five
+machines.</p>
+<p>Keep CI when:</p>
+<ul>
+<li><strong>Your tests need to run on each OS.</strong> atom verifies that a binary starts,
+not that it is correct. A Windows-specific path bug is exactly the kind of
+thing only a Windows machine will find.</li>
+<li><strong>Your build cannot cross-compile.</strong> PyInstaller and friends bundle the host
+interpreter and its native extensions, so a Windows executable needs a
+Windows machine. See <a href="/atom-builder/guide/build-systems/">Build systems</a>.</li>
+<li><strong>You need builds to happen without you.</strong> Tag pushes, nightly builds,
+contributors' pull requests. atom runs when you run it.</li>
+<li><strong>You are shipping from a machine you do not control</strong>, or want the release
+provenance a hosted runner gives you.</li>
+</ul>
+<blockquote class="callout callout-tip">
+<p>These are not exclusive. A common arrangement is atom for everyday local
+releases and a small CI job for the one target that needs a real machine —
+the config for both is short precisely because each is doing less.</p>
+</blockquote>
+<h2>Using atom inside CI</h2>
+<p>Nothing stops you. atom is a single binary with no dependencies, and running it
+in a workflow collapses the matrix into one job:</p>
+<pre><code class="language-yaml">jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git clone --depth 1 https://github.com/yavuzselimsahin/atom-builder /tmp/atom
+          make -C /tmp/atom
+      - uses: goto-bus-stop/setup-zig@v2
+      - run: /tmp/atom/atom release
+      - run: /tmp/atom/atom publish -y
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+</code></pre>
+<p>One runner instead of five, and the same manifest you use locally — so a
+release built in CI and one built on your laptop come out of the same
+description rather than two that have to be kept in sync.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/quickstart/">Quickstart</a>
+                <a class="next" href="/atom-builder/guide/">Guide</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>
