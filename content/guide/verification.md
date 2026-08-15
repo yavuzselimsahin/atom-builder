@@ -75,7 +75,26 @@ atom picks the cheapest thing that can execute the target.
 > [!NOTE]
 > `qemu-user` needs a Linux host, because it translates Linux system calls. On
 > macOS the equivalent is a Linux container, and Docker's own VM already has
-> binfmt and qemu registered. That is the only reason Docker appears here.
+> binfmt handlers registered. That is the only reason Docker appears here.
+
+What that container uses is worth knowing, because it decides how much the
+emulation costs. Docker Desktop on Apple silicon registers **both** Rosetta and
+qemu, and picks per architecture. The same busy loop, timed three ways on an
+M1:
+
+<table>
+<thead><tr><th>Platform</th><th>Time</th><th>Running under</th></tr></thead>
+<tbody>
+<tr><td><code>linux/arm64</code></td><td>1.11 s</td><td>nothing — Docker's VM is already ARM</td></tr>
+<tr><td><code>linux/amd64</code></td><td>2.43 s</td><td>Rosetta 2</td></tr>
+<tr><td><code>linux/s390x</code></td><td>8.41 s</td><td>qemu</td></tr>
+</tbody>
+</table>
+
+So x86_64 Linux work on an Apple silicon Mac does not go through qemu at all —
+Rosetta handles it at roughly twice native, where qemu would be closer to eight
+times. On an Intel Mac, or for any architecture Rosetta does not cover, qemu is
+what runs.
 
 `dist/` is mounted read-only, so a binary misbehaving under emulation cannot
 alter what is about to be released.

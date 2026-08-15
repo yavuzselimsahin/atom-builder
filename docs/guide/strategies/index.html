@@ -73,7 +73,9 @@ setup    = &quot;apk add --no-cache build-base&quot;
 <p>The zig build is static and self-contained. The container build links against
 Alpine's actual musl, which is what a distribution package should do.</p>
 <p>Docker supplies the emulation, so a <code>linux/amd64</code> target builds on Apple
-silicon with no qemu setup at all.</p>
+silicon with no qemu setup at all — and on Apple silicon it is Rosetta rather
+than qemu doing the work, which costs about twice native rather than eight
+times. See <a href="/atom-builder/guide/verification/#how-a-runner-is-chosen">Verification</a>.</p>
 <h2>The image must have a toolchain</h2>
 <blockquote class="callout callout-note">
 <p>atom does not install compilers into your image. Either use one that already

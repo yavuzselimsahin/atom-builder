@@ -56,7 +56,9 @@ The zig build is static and self-contained. The container build links against
 Alpine's actual musl, which is what a distribution package should do.
 
 Docker supplies the emulation, so a `linux/amd64` target builds on Apple
-silicon with no qemu setup at all.
+silicon with no qemu setup at all — and on Apple silicon it is Rosetta rather
+than qemu doing the work, which costs about twice native rather than eight
+times. See [Verification](/guide/verification/#how-a-runner-is-chosen).
 
 ## The image must have a toolchain
 
