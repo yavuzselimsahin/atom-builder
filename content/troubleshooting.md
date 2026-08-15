@@ -159,6 +159,16 @@ different `tag`.
 If the tag did not already exist, GitHub created it at the head of your default
 branch — not at your local `HEAD`. Push first, then publish.
 
+## Command line
+
+### package does not take --no-cache
+
+The flag is real but belongs to another command. Each command accepts only the
+options that mean something for it, and the rest are refused rather than
+ignored — silently accepting a flag that does nothing is worse than saying so.
+
+`atom <command> --help` lists what that one takes.
+
 ## Manifest
 
 ### [build] artifact is required

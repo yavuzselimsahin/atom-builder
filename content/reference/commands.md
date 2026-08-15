@@ -8,6 +8,24 @@ order: 1
 atom <command> [options]
 ```
 
+Every command carries its own help, which lists only the options that apply
+to it:
+
+```bash
+atom --help              # the overview
+atom build --help        # just build's options
+atom help publish        # the same thing, spelled the other way
+```
+
+An option a command does not take is refused rather than ignored, so a
+misplaced flag stops you instead of quietly doing nothing:
+
+```
+$ atom package --no-cache
+atom: package does not take --no-cache
+      try `atom package --help`
+```
+
 ## Commands
 
 ### atom init
@@ -69,58 +87,72 @@ Prints the version.
 
 ## Options
 
+Which options a command accepts:
+
 <table>
-<thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Accepted by</th><th>Meaning</th></tr>
+</thead>
 <tbody>
 <tr>
   <td><code>-f</code>, <code>--file &lt;path&gt;</code></td>
   <td><code>atom.toml</code></td>
+  <td>all</td>
   <td>Manifest to read. Its directory becomes the project root unless <code>-C</code> says otherwise.</td>
 </tr>
 <tr>
   <td><code>-C &lt;dir&gt;</code></td>
   <td>the manifest's directory</td>
-  <td>Project root.</td>
+  <td>all</td>
+  <td>Project root. This is how <code>init</code> is pointed somewhere else.</td>
 </tr>
 <tr>
   <td><code>-t</code>, <code>--target &lt;id&gt;</code></td>
-  <td>all</td>
-  <td>Act on one target only. On <code>publish</code> this also drops <code>SHA256SUMS</code>, which describes the whole release.</td>
+  <td>all targets</td>
+  <td>build, verify, package, publish, release</td>
+  <td>Act on one target only. On <code>package</code> and <code>publish</code> this also drops <code>SHA256SUMS</code>, which describes a whole release.</td>
 </tr>
 <tr>
   <td><code>-j &lt;n&gt;</code></td>
   <td>core count</td>
+  <td>build, release</td>
   <td>How many targets to build at once.</td>
 </tr>
 <tr>
   <td><code>--make-jobs &lt;n&gt;</code></td>
   <td><code>4</code></td>
+  <td>build, release</td>
   <td>The <code>-j</code> passed to each individual build.</td>
-</tr>
-<tr>
-  <td><code>-v</code>, <code>--verbose</code></td>
-  <td>off</td>
-  <td>Show build output even for targets that succeeded, and explain each skipped verification.</td>
-</tr>
-<tr>
-  <td><code>-y</code>, <code>--yes</code></td>
-  <td>off</td>
-  <td>Do not ask for confirmation before publishing.</td>
-</tr>
-<tr>
-  <td><code>--dry-run</code></td>
-  <td>off</td>
-  <td>Show what <code>publish</code> would upload, and upload nothing.</td>
 </tr>
 <tr>
   <td><code>--no-cache</code></td>
   <td>off</td>
+  <td>build, release</td>
   <td>Rebuild even when nothing has changed.</td>
+</tr>
+<tr>
+  <td><code>--dry-run</code></td>
+  <td>off</td>
+  <td>publish</td>
+  <td>Show what would be uploaded, and upload nothing.</td>
+</tr>
+<tr>
+  <td><code>-y</code>, <code>--yes</code></td>
+  <td>off</td>
+  <td>publish</td>
+  <td>Do not ask for confirmation.</td>
+</tr>
+<tr>
+  <td><code>-v</code>, <code>--verbose</code></td>
+  <td>off</td>
+  <td>build, verify, publish, release</td>
+  <td>Show the underlying tool's own output, and explain each skipped verification.</td>
 </tr>
 <tr>
   <td><code>-h</code>, <code>--help</code></td>
   <td></td>
-  <td>Usage.</td>
+  <td>all</td>
+  <td>The overview, or that command's own help.</td>
 </tr>
 </tbody>
 </table>

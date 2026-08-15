@@ -130,6 +130,12 @@ different <code>tag</code>.</p>
 <h3>The release points at the wrong code</h3>
 <p>If the tag did not already exist, GitHub created it at the head of your default
 branch — not at your local <code>HEAD</code>. Push first, then publish.</p>
+<h2>Command line</h2>
+<h3>package does not take --no-cache</h3>
+<p>The flag is real but belongs to another command. Each command accepts only the
+options that mean something for it, and the rest are refused rather than
+ignored — silently accepting a flag that does nothing is worse than saying so.</p>
+<p><code>atom &lt;command&gt; --help</code> lists what that one takes.</p>
 <h2>Manifest</h2>
 <h3>[build] artifact is required</h3>
 <p>Every manifest needs to know what file the build produces.</p>
