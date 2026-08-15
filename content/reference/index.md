@@ -37,4 +37,4 @@ dist/
 
 ## Version
 
-This documentation describes **atom 0.1.0**.
+This documentation describes **atom 1.0.0**.

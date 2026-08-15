@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Install</title>
-    <meta name="description" content="Get atom onto your machine and onto your PATH">
+    <meta name="description" content="Download a build, or compile it yourself">
     <link rel="stylesheet" href="/atom-builder/style.css">
     <script>
     /* Runs before the first paint, so a reader who chose a scheme never
@@ -18,7 +18,7 @@
 <body>
     <header class="topbar">
         <a class="brand" href="/atom-builder/">atom-builder</a>
-        <span class="version">0.1.0</span>
+        <span class="version">1.0.0</span>
         <button class="theme-toggle" type="button"
                 aria-label="Switch between light and dark">
             <span class="in-light">Dark</span>
@@ -33,27 +33,76 @@
         <main>
             <article>
                 <h1>Install</h1>
-                <p>atom is a single C program with no dependencies beyond libc. Building it takes
-a few seconds.</p>
+                <p>Two ways in. Downloading a build is faster; building from source needs nothing
+but a C compiler and takes a few seconds.</p>
+<h2>Download a build</h2>
+<p>Take the archive for your platform from the
+<a href="https://github.com/yavuzselimsahin/atom-builder/releases/latest">latest release</a>,
+or use one of these.</p>
+<h3>macOS, Apple silicon</h3>
+<pre><code class="language-bash">curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-macos-arm64.zip
+unzip atom-builder-1.0.0-macos-arm64.zip
+xattr -d com.apple.quarantine atom-builder-1.0.0-macos-arm64/atom
+mkdir -p ~/.local/bin &amp;&amp; mv atom-builder-1.0.0-macos-arm64/atom ~/.local/bin/
+</code></pre>
+<h3>macOS, Intel</h3>
+<pre><code class="language-bash">curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-macos-x86_64.zip
+unzip atom-builder-1.0.0-macos-x86_64.zip
+xattr -d com.apple.quarantine atom-builder-1.0.0-macos-x86_64/atom
+mkdir -p ~/.local/bin &amp;&amp; mv atom-builder-1.0.0-macos-x86_64/atom ~/.local/bin/
+</code></pre>
+<h3>Linux, x86_64</h3>
+<pre><code class="language-bash">curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-linux-x86_64.tar.gz
+tar xzf atom-builder-1.0.0-linux-x86_64.tar.gz
+mkdir -p ~/.local/bin &amp;&amp; mv atom-builder-1.0.0-linux-x86_64/atom ~/.local/bin/
+</code></pre>
+<h3>Linux, arm64</h3>
+<pre><code class="language-bash">curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-linux-arm64.tar.gz
+tar xzf atom-builder-1.0.0-linux-arm64.tar.gz
+mkdir -p ~/.local/bin &amp;&amp; mv atom-builder-1.0.0-linux-arm64/atom ~/.local/bin/
+</code></pre>
+<p><code>~/.local/bin</code> is on <code>PATH</code> on most systems and needs no <code>sudo</code>. Check it
+worked:</p>
+<pre><code class="language-bash">atom version
+</code></pre>
+<blockquote class="callout callout-note">
+<p>The macOS builds are unsigned, so Gatekeeper quarantines anything arriving
+through a browser or <code>curl</code> and refuses to run it. The <code>xattr -d com.apple.quarantine</code> line clears that flag. Signing and notarization are
+planned; until then the step is unavoidable.</p>
+</blockquote>
+<h3>Check what you downloaded</h3>
+<p>Every release carries a <code>SHA256SUMS</code> covering its archives.</p>
+<pre><code class="language-bash">curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/SHA256SUMS
+shasum -a 256 -c SHA256SUMS --ignore-missing     # macOS
+sha256sum -c SHA256SUMS --ignore-missing         # Linux
+</code></pre>
+<p><code>--ignore-missing</code> checks the archive you actually downloaded instead of
+complaining about the three you did not.</p>
+<h2>Build from source</h2>
+<p>The whole program is C with no dependencies beyond libc, so this takes seconds.</p>
 <pre><code class="language-bash">git clone https://github.com/yavuzselimsahin/atom-builder.git
 cd atom-builder
 make
 make install PREFIX=~/.local
 </code></pre>
-<p><code>~/.local/bin</code> is already on <code>PATH</code> on most systems and needs no <code>sudo</code>. Leave
-<code>PREFIX</code> out to install into <code>/usr/local/bin</code> instead, which does.</p>
-<p>Check it worked:</p>
-<pre><code class="language-bash">atom version
+<p>Leave <code>PREFIX</code> out to install into <code>/usr/local/bin</code> instead, which needs
+<code>sudo</code>. <code>make uninstall PREFIX=~/.local</code> removes it again.</p>
+<p>Building from source also gets you the test suite:</p>
+<pre><code class="language-bash">make test
 </code></pre>
+<blockquote class="callout callout-tip">
+<p>If you are going to work on atom itself, <code>make link</code> symlinks the binary
+rather than copying it, so a rebuild takes effect with no second step. The
+catch is that <code>make clean</code> then leaves a dangling link until you build again.</p>
+</blockquote>
 <h2>What else you need</h2>
-<p>atom drives other programs rather than reimplementing them. Which ones you
-need depends on what you ask it to do.</p>
+<p>atom drives other programs rather than reimplementing them. Which ones you need
+depends on what you ask it to do.</p>
 <table>
 <thead>
 <tr><th>Tool</th><th>Needed for</th><th>When</th></tr>
 </thead>
 <tbody>
-<tr><td><code>cc</code>, <code>make</code></td><td>Building atom itself</td><td>Always</td></tr>
 <tr><td><a href="https://ziglang.org">zig</a></td><td>Cross-compilers</td><td>Any target using the default <code>zig</code> strategy</td></tr>
 <tr><td>Your own toolchain</td><td>Compiling your project</td><td>cargo, go, dotnet — whatever your project uses</td></tr>
 <tr><td><code>gzip</code></td><td>Compression</td><td><code>atom package</code></td></tr>
@@ -61,35 +110,27 @@ need depends on what you ask it to do.</p>
 <tr><td><code>curl</code></td><td>GitHub Releases API</td><td><code>atom publish</code> with a GitHub destination</td></tr>
 <tr><td><code>docker</code></td><td>Emulation</td><td>Container builds, and verifying Linux binaries from a non-Linux host</td></tr>
 <tr><td><code>wine</code></td><td>Running Windows binaries</td><td>Verifying Windows targets</td></tr>
+<tr><td><code>cc</code>, <code>make</code></td><td>Building atom itself</td><td>Only if you build from source</td></tr>
 </tbody>
 </table>
-<p>Only the first two are needed to build anything at all. The rest are checked
-when a command actually needs them, and atom says which one is missing rather
-than failing obscurely.</p>
-<h2>Installing zig</h2>
-<p>zig supplies the cross-compilers that make one machine able to build for all
-the others. Any recent version works.</p>
+<p>Each is checked when a command actually needs it, and atom names the missing
+one rather than failing obscurely.</p>
+<h3>Installing zig</h3>
+<p>zig supplies the cross-compilers that let one machine build for all the others.
+Any recent version works.</p>
 <pre><code class="language-bash">brew install zig          # macOS
 </code></pre>
-<p>Or download a build from <a href="https://ziglang.org/download/">ziglang.org/download</a>
-and put it on your <code>PATH</code>. atom only ever calls <code>zig cc</code> and <code>zig version</code>.</p>
+<p>Or take a build from <a href="https://ziglang.org/download/">ziglang.org/download</a> and
+put it on your <code>PATH</code>. atom only ever calls <code>zig cc</code> and <code>zig version</code>.</p>
 <h2>Where atom runs</h2>
 <p>atom uses <code>fork</code>, <code>execvp</code> and <code>poll</code>, so it runs on <strong>macOS, Linux and the
 BSDs</strong>.</p>
-<blockquote class="callout callout-note">
-<p>Windows is a first-class <em>target</em> — atom builds Windows binaries happily
-from any of those hosts — but atom does not yet <em>run</em> on Windows.</p>
+<blockquote class="callout callout-important">
+<p>Windows is a first-class <em>target</em> — atom produces Windows binaries from any
+of those hosts — but atom itself does not yet <em>run</em> on Windows. That would
+need a second implementation of its process handling on top of
+<code>CreateProcess</code>, which is why the release carries no Windows build.</p>
 </blockquote>
-<h2>Working on atom itself</h2>
-<p>If you are changing atom's own source, <code>make link</code> symlinks the binary instead
-of copying it, so a rebuild takes effect immediately:</p>
-<pre><code class="language-bash">make link PREFIX=~/.local
-</code></pre>
-<blockquote class="callout callout-caution">
-<p><code>make clean</code> then leaves a dangling link until you rebuild, which shows up
-as <code>command not found</code>. Use <code>make install</code> for a copy that survives.</p>
-</blockquote>
-<p><code>make uninstall PREFIX=~/.local</code> removes either kind.</p>
 
             </article>
             <nav class="post-nav">

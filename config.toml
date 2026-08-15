@@ -4,7 +4,7 @@ author      = "Yavuz Selim Sahin"
 theme       = "docs"
 
 # Shown beside the site name. The atom release this documents.
-version     = "0.1.0"
+version     = "1.0.0"
 
 base_url    = "https://yavuzselimsahin.github.io/atom-builder"
 
