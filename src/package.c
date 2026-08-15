@@ -102,6 +102,17 @@ int cmd_package(const Manifest *m, const BuildOpts *o) {
                 missing = 1;
                 break;
             }
+            /* A directory would otherwise be written as a zero-byte regular
+               file: stat succeeds, the header goes in, and no content
+               follows. Refusing is the only honest answer until the archive
+               writers can walk a tree. */
+            if (S_ISDIR(st.st_mode)) {
+                snprintf(job->detail, sizeof job->detail,
+                         "[package] include names %s, which is a directory — "
+                         "list its files instead", extras.v[k]);
+                missing = 1;
+                break;
+            }
             snprintf(names[n], sizeof names[n], "%s/%s", prefix,
                      basename_of(extras.v[k]));
             entries[n].src  = srcs[n];

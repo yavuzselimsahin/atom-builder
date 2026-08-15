@@ -276,7 +276,14 @@ int cmd_init(const char *dir) {
         printf("  artifact \"%s\", read from the Makefile\n\n", artifact);
     else
         printf("  artifact guessed as \"%s\" — check it\n\n", artifact);
-    printf("Next: check it over, then run `atom targets`.\n");
+    printf("Next: check it over, then run `atom targets`.\n\n");
+
+    /* The generated file is a working minimum, not a tour. Everything it
+       leaves out — strategies, container images, placeholders — is one page
+       away, and saying so here is cheaper than commenting all of it inline. */
+    printf("Every key, with its default:\n");
+    printf("  https://yavuzselimsahin.github.io/atom-builder/reference/"
+           "manifest-keys/\n");
 
     return 0;
 }

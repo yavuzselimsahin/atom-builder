@@ -712,6 +712,14 @@ EOF
         echo "  skip checksum verification — no sha256 tool"
     fi
 
+    # A directory in include would otherwise become a zero-byte file in the
+    # archive, which is worse than an error because it looks fine.
+    mkdir -p "$D/somedir" && printf 'x\n' > "$D/somedir/f.txt"
+    sed 's|include  = .*|include  = "somedir"|' "$D/atom.toml" > "$D/dir.toml"
+    OUT=$("$ATOM" package -f "$D/dir.toml" 2>&1); RC=$?
+    assert_status "a directory in include is refused" 1 $RC
+    assert_contains "it says why" "$OUT" "is a directory"
+
     # A missing include is a manifest error, not a silent omission.
     sed 's|include  = .*|include  = "README.md NOPE.md"|' "$D/atom.toml" > "$D/bad.toml"
     OUT=$("$ATOM" package -f "$D/bad.toml" 2>&1); RC=$?

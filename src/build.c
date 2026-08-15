@@ -395,8 +395,12 @@ int cmd_build(const Manifest *m, const BuildOpts *o) {
         job->seconds = proc->finished - proc->started;
 
         if (proc->status != 0) {
+            /* The command as it actually ran, not the template it came from:
+               a message quoting `./build.sh {triple}` sends the reader looking
+               for a placeholder bug that is not there. */
+            const char *ran = job->argv.count > 0 ? job->argv.v[0] : "the build";
             snprintf(job->detail, sizeof job->detail,
-                     "%s exited %d", m->command, proc->status);
+                     "%s exited %d", ran, proc->status);
             continue;
         }
         if (verify_artifact(job, job->target, job->produced) != 0) continue;
