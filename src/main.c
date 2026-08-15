@@ -23,8 +23,9 @@
 #define OPT_VERBOSE  (1u << 3)   /* -v                    */
 #define OPT_CONFIRM  (1u << 4)   /* -y, --dry-run         */
 #define OPT_CACHE    (1u << 5)   /* --no-cache            */
+#define OPT_IMAGES   (1u << 6)   /* --keep-images         */
 
-#define OPT_GROUPS   6
+#define OPT_GROUPS   7
 
 typedef struct {
     const char *name;
@@ -69,7 +70,7 @@ static const Command COMMANDS[] = {
     "is identified by reading its own header and compared against what the\n"
     "target asked for, so a build that exits 0 with the wrong output still\n"
     "fails. Targets whose inputs have not changed are served from the cache.",
-    OPT_MANIFEST | OPT_TARGET | OPT_JOBS | OPT_VERBOSE | OPT_CACHE
+    OPT_MANIFEST | OPT_TARGET | OPT_JOBS | OPT_VERBOSE | OPT_CACHE | OPT_IMAGES
 },
 {
     "verify", "run each built binary, emulating where needed",
@@ -80,7 +81,7 @@ static const Command COMMANDS[] = {
     "A target with no available runner is skipped rather than failed, unless\n"
     "it set `verify = true` in the manifest. Skips alone do not fail the\n"
     "command; -v explains each one.",
-    OPT_MANIFEST | OPT_TARGET | OPT_VERBOSE
+    OPT_MANIFEST | OPT_TARGET | OPT_VERBOSE | OPT_IMAGES
 },
 {
     "package", "archive what build produced, and checksum it",
@@ -116,7 +117,7 @@ static const Command COMMANDS[] = {
     "\n"
     "Publishing stays separate on purpose: anything that leaves your machine\n"
     "should be a deliberate act.",
-    OPT_MANIFEST | OPT_TARGET | OPT_JOBS | OPT_VERBOSE | OPT_CACHE
+    OPT_MANIFEST | OPT_TARGET | OPT_JOBS | OPT_VERBOSE | OPT_CACHE | OPT_IMAGES
 },
 {
     "version", "print the version",
@@ -155,6 +156,8 @@ static void print_options(unsigned mask) {
                "upload nothing\n");
         printf("  -y, --yes            do not ask for confirmation\n");
     }
+    if (mask & OPT_IMAGES)
+        printf("      --keep-images    do not remove images atom pulled\n");
     if (mask & OPT_VERBOSE)
         printf("  -v, --verbose        show the underlying tool's own output\n");
 
@@ -209,7 +212,7 @@ int main(int argc, char **argv) {
     const char *root     = NULL;
     const char *only     = NULL;
     int jobs = 0, make_jobs = 0, verbose = 0, assume_yes = 0, dry_run = 0;
-    int no_cache = 0, want_help = 0;
+    int no_cache = 0, want_help = 0, keep_images = 0;
 
     /* Which option groups were used, and the flag that first used each, so a
        flag the command does not accept can be named back to the user. */
@@ -264,6 +267,9 @@ int main(int argc, char **argv) {
         } else if (strcmp(a, "--no-cache") == 0) {
             no_cache = 1;
             MARK(OPT_CACHE, a);
+        } else if (strcmp(a, "--keep-images") == 0) {
+            keep_images = 1;
+            MARK(OPT_IMAGES, a);
         } else if (a[0] == '-') {
             fprintf(stderr, "atom: unknown option %s\n", a);
             return 2;
@@ -355,6 +361,7 @@ int main(int argc, char **argv) {
         .assume_yes  = assume_yes,
         .dry_run     = dry_run,
         .no_cache    = no_cache,
+        .keep_images = keep_images,
     };
 
     if (strcmp(command, "verify") == 0)

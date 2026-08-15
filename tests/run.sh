@@ -529,6 +529,46 @@ EOF
         [ "$BEFORE" = "$AFTER" ] && ok "no container is left behind" \
                                  || bad "no container is left behind"
 
+        # atom should leave the machine as it found it: an image it pulled is
+        # taken back out, and one that was already there is not its to remove.
+        if docker image inspect debian:12-slim >/dev/null 2>&1; then
+            echo "  skip image cleanup test — debian:12-slim already present"
+        else
+            D2=$(make_fixture image_cleanup)
+            cat > "$D2/atom.toml" <<'EOF'
+[project]
+name    = "fixture"
+version = "0.1.0"
+
+[build]
+artifact = "hello"
+
+[verify]
+expect = "hello"
+image  = "debian:12-slim"
+
+[target.linux-x86_64]
+triple = "x86_64-linux-gnu"
+EOF
+            "$ATOM" build -f "$D2/atom.toml" >/dev/null 2>&1
+            OUT=$("$ATOM" verify -f "$D2/atom.toml" 2>&1)
+            assert_contains "it says which images it removed" "$OUT" "removing 1 image"
+            docker image inspect debian:12-slim >/dev/null 2>&1 \
+                && bad "a pulled image is removed afterwards" \
+                || ok  "a pulled image is removed afterwards"
+
+            "$ATOM" build -f "$D2/atom.toml" >/dev/null 2>&1
+            OUT=$("$ATOM" verify -f "$D2/atom.toml" --keep-images 2>&1)
+            assert_contains "--keep-images keeps it" "$OUT" "kept 1 pulled image"
+            docker image rm debian:12-slim >/dev/null 2>&1
+        fi
+
+        # An image that was already on the machine is never removed.
+        OUT=$("$ATOM" build -f "$D/atom.toml" 2>&1)
+        docker image inspect alpine:3.20 >/dev/null 2>&1 \
+            && ok  "an image that was already present is left alone" \
+            || bad "an image that was already present is left alone"
+
         # A container target with no image cannot be resolved.
         sed '/^image /d' "$D/atom.toml" > "$D/noimage.toml"
         OUT=$("$ATOM" targets -f "$D/noimage.toml" 2>&1); RC=$?
@@ -647,6 +687,9 @@ EOF
             OUT=$("$ATOM" verify -f "$D4/atom.toml" 2>&1); RC=$?
             assert_status "an unrunnable target is skipped, not failed" 0 $RC
             assert_contains "the skip explains itself" "$OUT" "no wine"
+            # The container fallback exists but costs gigabytes, so it is named
+            # rather than assumed — the skip should say how to turn it on.
+            assert_contains "it points at the wine_image option" "$OUT" "wine_image"
 
             # ...unless the target asked to be verified.
             sed 's|make     = "BIN=hello.exe"|make     = "BIN=hello.exe"\nverify   = true|' \

@@ -40,6 +40,7 @@ typedef struct {
     char verify_args[256];        /* arguments passed to the built binary    */
     char verify_expect[256];      /* substring the output must contain       */
     char verify_image[128];       /* container image for emulated Linux runs */
+    char wine_image[128];         /* container image carrying wine           */
     int  verify_exit;             /* expected exit status                    */
     int  verify_timeout;          /* seconds before the run is killed        */
 

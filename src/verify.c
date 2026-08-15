@@ -1,6 +1,7 @@
 #include "../include/verify.h"
 #include "../include/binfmt.h"
 #include "../include/exec.h"
+#include "../include/driver.h"
 #include "../include/util.h"
 
 #include <stdio.h>
@@ -16,6 +17,7 @@ const char *runner_name(RunnerKind kind) {
         case RUN_QEMU:   return "qemu";
         case RUN_DOCKER: return "docker";
         case RUN_WINE:   return "wine";
+        case RUN_WINE_DOCKER: return "docker+wine";
         default:         return "none";
     }
 }
@@ -85,7 +87,6 @@ static const char *qemu_binary(BinArch arch) {
 
 RunnerKind runner_select(const Manifest *m, const char *triple,
                          char *why, size_t why_size) {
-    (void)m;
 
     BinFormat want_fmt;
     BinArch   want_arch;
@@ -110,7 +111,17 @@ RunnerKind runner_select(const Manifest *m, const char *triple,
 
     if (want_fmt == BF_PE) {
         if (have_command("wine")) return RUN_WINE;
-        snprintf(why, why_size, "no wine on this host");
+
+        /* The same fallback Linux targets get, but only when asked for: a
+           wine image is gigabytes, where the Linux ones are megabytes, so it
+           is named in the manifest rather than assumed. */
+        if (m->wine_image[0] && docker_platform(want_arch) && docker_ready())
+            return RUN_WINE_DOCKER;
+
+        snprintf(why, why_size, m->wine_image[0]
+                 ? "no wine here, and %s could not be used"
+                 : "no wine on this host (set [verify] wine_image to use one "
+                   "in a container)", m->wine_image);
         return RUN_NONE;
     }
 
@@ -165,7 +176,33 @@ static int runner_argv(RunnerKind kind, const Manifest *m, const Target *t,
             av_push(a, binary);
             break;
 
+        case RUN_WINE_DOCKER: {
+            image_note(m->wine_image);
+            BinFormat f;
+            BinArch   arch;
+            binfmt_from_triple(t->triple, &f, &arch);
+            const char *plat = docker_platform(arch);
+            if (!plat) { av_free(a); return -1; }
+
+            av_push(a, "docker");
+            av_push(a, "run");
+            av_push(a, "--rm");
+            av_push(a, "--platform");
+            av_push(a, plat);
+            av_push(a, "-v");
+            av_pushf(a, "%s:/atom:ro", dist_abs);
+            /* wine narrates its own startup at length; none of it is the
+               program's output, and expect would have to match around it. */
+            av_push(a, "-e");
+            av_push(a, "WINEDEBUG=-all");
+            av_push(a, m->wine_image);
+            av_push(a, "wine");
+            av_pushf(a, "/atom/%s/%s", t->id, artifact);
+            break;
+        }
+
         case RUN_DOCKER: {
+            image_note(m->verify_image);
             BinFormat f;
             BinArch   arch;
             binfmt_from_triple(t->triple, &f, &arch);
@@ -325,6 +362,8 @@ int cmd_verify(const Manifest *m, const BuildOpts *o) {
     if (skipped && !o->verbose)
         printf("\nSkipped targets have no runner on this host. `atom verify -v`"
                " explains each one.\n");
+
+    image_cleanup(o->keep_images);
 
     return failed;
 }

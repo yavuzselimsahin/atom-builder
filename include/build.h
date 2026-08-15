@@ -15,6 +15,7 @@ typedef struct {
     int         assume_yes;   /* skip the confirmation before publishing    */
     int         dry_run;      /* show what would be published, do nothing   */
     int         no_cache;     /* rebuild even when the inputs are unchanged */
+    int         keep_images;  /* leave images atom pulled on the machine     */
 } BuildOpts;
 
 /* Builds every target in the manifest. Returns the number that failed. */

@@ -39,6 +39,8 @@ int container_start(const Target *t, const char *workdir,
         return -1;
     }
 
+    image_note(t->image);
+
     ArgV a;
     av_init(&a);
     av_push(&a, "docker");
@@ -126,4 +128,80 @@ void container_stop(const char *id) {
 
     av_free(&a);
     sb_free(&out);
+}
+
+/* --------------------------------------------------------------------- */
+/* Images atom introduced, and taking them back out                        */
+/* --------------------------------------------------------------------- */
+
+#define MAX_NOTED 16
+
+static char noted[MAX_NOTED][128];
+static int  noted_count;
+
+static int image_present(const char *image) {
+    ArgV a;
+    av_init(&a);
+    av_push(&a, "docker");
+    av_push(&a, "image");
+    av_push(&a, "inspect");
+    av_push(&a, image);
+
+    StrBuf out;
+    sb_init(&out);
+    int rc = run_sync(NULL, a.v, &out);
+
+    av_free(&a);
+    sb_free(&out);
+    return rc == 0;
+}
+
+void image_note(const char *image) {
+    if (!image || !image[0] || noted_count >= MAX_NOTED) return;
+
+    for (int i = 0; i < noted_count; i++)
+        if (strcmp(noted[i], image) == 0) return;
+
+    /* Only images this machine did not already have. Checking before the run
+       is the only moment the answer is knowable. */
+    if (image_present(image)) return;
+
+    snprintf(noted[noted_count], sizeof noted[0], "%s", image);
+    noted_count++;
+}
+
+void image_cleanup(int keep) {
+    if (noted_count == 0) return;
+
+    if (keep) {
+        printf("\nkept %d pulled image%s:\n", noted_count,
+               noted_count == 1 ? "" : "s");
+        for (int i = 0; i < noted_count; i++)
+            printf("  %s\n", noted[i]);
+        noted_count = 0;
+        return;
+    }
+
+    printf("\nremoving %d image%s atom pulled:\n", noted_count,
+           noted_count == 1 ? "" : "s");
+
+    for (int i = 0; i < noted_count; i++) {
+        ArgV a;
+        av_init(&a);
+        av_push(&a, "docker");
+        av_push(&a, "image");
+        av_push(&a, "rm");
+        av_push(&a, noted[i]);
+
+        StrBuf out;
+        sb_init(&out);
+        int rc = run_sync(NULL, a.v, &out);
+        av_free(&a);
+        sb_free(&out);
+
+        /* A removal can fail because something else started using the image
+           meanwhile. That is not atom's business to force. */
+        printf("  %-40s %s\n", noted[i], rc == 0 ? "removed" : "still in use");
+    }
+    noted_count = 0;
 }

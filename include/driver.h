@@ -32,4 +32,20 @@ int container_exec_argv(const char *id, char *const command[], ArgV *out);
 /* Removes the container. Safe to call with an empty id. */
 void container_stop(const char *id);
 
+/* Docker pulls an image the first time it is used, and leaves it on the
+   machine afterwards. Somebody who ran one build should not discover a
+   two-gigabyte image they never asked for, so atom records which images it
+   introduced and can take exactly those back out again.
+
+   An image that was already present is never touched: it was not atom's to
+   remove, and somebody is probably using it. */
+
+/* Notes that `image` is about to be used, remembering whether this machine
+   already had it. Safe to call repeatedly with the same name. */
+void image_note(const char *image);
+
+/* Removes the images atom introduced during this run. With `keep` non-zero it
+   only reports them, which is what you want while iterating. */
+void image_cleanup(int keep);
+
 #endif

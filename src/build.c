@@ -481,6 +481,8 @@ int cmd_build(const Manifest *m, const BuildOpts *o) {
     }
     pool_free(&pool);
 
+    image_cleanup(o->keep_images);
+
     return failed;
 }
 

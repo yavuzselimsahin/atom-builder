@@ -14,7 +14,8 @@ typedef enum {
     RUN_HOST,      /* runs directly: same OS, and an arch the host executes */
     RUN_QEMU,      /* qemu-<arch> on a Linux host                          */
     RUN_DOCKER,    /* a Linux container, which supplies qemu itself        */
-    RUN_WINE
+    RUN_WINE,      /* wine on this host                                   */
+    RUN_WINE_DOCKER/* wine inside a Linux container, when the host has none */
 } RunnerKind;
 
 const char *runner_name(RunnerKind kind);

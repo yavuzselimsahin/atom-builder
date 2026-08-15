@@ -77,6 +77,11 @@ int manifest_load(const char *path, Manifest *m) {
                toml_get_or(&doc, "verify", "expect", ""));
     copy_field(m->verify_image,  sizeof m->verify_image,
                toml_get_or(&doc, "verify", "image", "alpine:3.20"));
+    /* No default on purpose: a wine image is gigabytes, and pulling that
+       because somebody happened to have Docker running would be exactly the
+       kind of surprise atom tries not to be. Naming one is the permission. */
+    copy_field(m->wine_image,    sizeof m->wine_image,
+               toml_get_or(&doc, "verify", "wine_image", ""));
 
     {
         const char *v = toml_get_or(&doc, "verify", "exit", "0");
