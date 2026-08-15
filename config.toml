@@ -1,0 +1,32 @@
+title       = "atom-builder"
+description = "Cross-platform builds for native projects, from one machine, in seconds."
+author      = "Yavuz Selim Sahin"
+theme       = "docs"
+
+# Shown beside the site name. The atom release this documents.
+version     = "0.1.0"
+
+base_url    = "https://yavuzselimsahin.github.io/atom-builder"
+
+# A GitHub Pages project site is served from a subdirectory, so both of these
+# carry the repository name. On a custom domain, drop base_path entirely and
+# set base_url to the domain.
+base_path = "/atom-builder"
+
+# Offers an "edit this page" link on every page. Point it at wherever this
+# site's markdown lives; the page's own source path is appended.
+# edit_url = "https://github.com/yavuzselimsahin/atom-builder/edit/docs"
+
+# A quiet line in the footer noting how the site was made.
+# Comment it out to remove it.
+built_with  = true
+
+[deploy]
+host = "user@vps"
+path = "/var/www/atom-builder-doc"
+
+[build]
+output_dir = "docs"
+
+[server]
+port = 4545

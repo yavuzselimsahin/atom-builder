@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The manifest</title>
+    <meta name="description" content="How atom.toml is put together">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>The manifest</h1>
+                <p>Everything atom knows about your project lives in one file next to your build
+script. <code>atom init</code> writes a working one; this explains what it wrote.</p>
+<h2>A complete example</h2>
+<pre><code class="language-toml">[project]
+name    = &quot;atomik-ssg&quot;
+version = &quot;1.1.0&quot;
+
+[build]
+system   = &quot;make&quot;
+artifact = &quot;atomik-ssg&quot;
+strip    = true
+
+[verify]
+expect = &quot;static site generator&quot;
+
+[package]
+include  = &quot;README.md LICENSE&quot;
+checksum = true
+
+[publish.github]
+repo = &quot;yavuzselimsahin/atomik-ssg&quot;
+
+[target.linux-x86_64]
+triple = &quot;x86_64-linux-musl&quot;
+
+[target.linux-arm64]
+triple = &quot;aarch64-linux-musl&quot;
+verify = true
+
+[target.macos-arm64]
+triple = &quot;aarch64-macos&quot;
+
+[target.windows-x86_64]
+triple   = &quot;x86_64-windows-gnu&quot;
+artifact = &quot;atomik-ssg.exe&quot;
+make     = &quot;BIN=atomik-ssg.exe LIBS=-lws2_32&quot;
+</code></pre>
+<p>Only three things are strictly required: a project <code>name</code>, a <code>build.artifact</code>,
+and at least one target.</p>
+<h2>Targets are named, not numbered</h2>
+<p>Each target is its own section, and the part after <code>target.</code> is its id:</p>
+<pre><code class="language-toml">[target.linux-arm64]
+triple = &quot;aarch64-linux-musl&quot;
+</code></pre>
+<p>That id is what you pass to <code>-t</code>, what names the directory under <code>dist/</code>, and
+what appears in the archive filename. Pick something you would not mind seeing
+on a download page.</p>
+<p>Targets are built in parallel, so their order in the file means nothing.</p>
+<h2>The triple is the source of truth</h2>
+<p>A target's <code>triple</code> names the platform, and atom derives everything else from
+it: the binary format it should produce, the architecture to check the result
+against, which emulator can run it, and — for toolchains that spell platforms
+differently — their own identifiers.</p>
+<pre><code>aarch64-linux-musl
+   │      │     └── libc: musl links statically, gnu links dynamically
+   │      └──────── operating system
+   └─────────────── architecture
+</code></pre>
+<p>Use the spelling your build system expects. zig, go, .NET and custom scripts
+take zig-style triples (<code>x86_64-linux-musl</code>); cargo takes Rust's
+(<code>x86_64-unknown-linux-musl</code>). <code>atom init</code> writes the right ones for whichever
+system it detected.</p>
+<blockquote class="callout callout-tip">
+<p>Prefer <code>-musl</code> for anything you distribute. musl targets link statically, so
+the result depends on nothing at runtime. <code>-gnu</code> targets link dynamically
+against whatever glibc happens to be on the user's machine.</p>
+</blockquote>
+<h2>Two settings named <code>artifact</code></h2>
+<p>This trips people up once.</p>
+<p><code>[build] artifact</code> is the <em>name of the file your build produces</em>. Not a path,
+not the project name — the filename.</p>
+<p><code>[target.…] artifact</code> overrides that for one target. Windows is the usual
+reason:</p>
+<pre><code class="language-toml">[target.windows-x86_64]
+triple   = &quot;x86_64-windows-gnu&quot;
+artifact = &quot;myapp.exe&quot;
+</code></pre>
+<p>Where that file <em>lands</em> is a separate question, answered by the build system —
+make leaves it in the tree root, cargo puts it under <code>target/&lt;triple&gt;/release/</code>.
+See <a href="/atom-builder/guide/build-systems/">Build systems</a>.</p>
+<h2>Passing arguments to your build</h2>
+<p><code>[target.…] make</code> appends arguments to the build command for that target only.
+Despite the name it works for any build system; it is a general escape hatch.</p>
+<pre><code class="language-toml">[target.windows-x86_64]
+make = &quot;BIN=myapp.exe LIBS=-lws2_32&quot;
+</code></pre>
+<p>It is appended last, so it can override anything atom set. A Makefile that
+picks its output name behind an <code>ifeq ($(OS),Windows_NT)</code> check needs this:
+that check never fires while cross-compiling, so the variable has to be passed
+in.</p>
+<h2>Sections you can leave out</h2>
+<table>
+<thead><tr><th>Section</th><th>Leave it out and…</th></tr></thead>
+<tbody>
+<tr><td><code>[verify]</code></td><td>binaries are run with no arguments and only their exit status is checked</td></tr>
+<tr><td><code>[package]</code></td><td>archives hold just the binary, and <code>SHA256SUMS</code> is still written</td></tr>
+<tr><td><code>[publish.*]</code></td><td><code>atom publish</code> tells you there is nowhere to publish to</td></tr>
+</tbody>
+</table>
+<h2>Parser notes</h2>
+<p>atom reads a deliberately small subset of TOML. Two behaviours are worth
+knowing:</p>
+<p><strong>Arrays of tables are not supported.</strong> Write <code>[target.linux-arm64]</code>, not
+<code>[[target]]</code>. This is why every target has a name.</p>
+<blockquote class="callout callout-caution">
+<p>An empty value means <em>not set</em>, not <em>disabled</em>. Writing <code>clean = &quot;&quot;</code> falls
+back to the default. To disable a command, give it one that does nothing:</p>
+</blockquote>
+<pre><code class="language-toml">[build]
+clean = &quot;true&quot;
+</code></pre>
+<p>Inline comments are stripped, so this does what it looks like:</p>
+<pre><code class="language-toml">artifact = &quot;myapp.exe&quot;    # windows only
+</code></pre>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/guide/">Guide</a>
+                <a class="next" href="/atom-builder/guide/build-systems/">Build systems</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

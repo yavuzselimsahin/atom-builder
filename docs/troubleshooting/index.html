@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troubleshooting</title>
+    <meta name="description" content="What the errors mean and how to fix them">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Troubleshooting</h1>
+                <p>atom tries to say what went wrong and what to do about it. This is the longer
+version of each message.</p>
+<h2>Build</h2>
+<h3>wrong artifact: expected ELF aarch64, got Mach-O aarch64</h3>
+<p>The build exited 0 but produced a file for the wrong platform. Almost always
+this means <code>make</code> decided there was nothing to do and left an earlier binary in
+place, because stale object files from another architecture were in the tree.</p>
+<p>Check <code>[build] clean</code>. It runs before every build precisely to prevent this,
+and disabling it — or pointing it at a rule that does not remove object files —
+brings the problem back.</p>
+<p>This is the check that exists because a build exiting 0 is not proof of
+anything.</p>
+<h3>build reported success but ./build/…/myapp was never created</h3>
+<p><code>[build] artifact</code> does not name the file your build actually produces.</p>
+<p>For Windows targets, remember the name usually changes: <code>myapp</code> becomes
+<code>myapp.exe</code>, and with <code>make</code> you also have to tell the Makefile, since its
+<code>ifeq ($(OS),Windows_NT)</code> check never fires while cross-compiling.</p>
+<pre><code class="language-toml">[target.windows-x86_64]
+artifact = &quot;myapp.exe&quot;
+make     = &quot;BIN=myapp.exe&quot;
+</code></pre>
+<p>If you use a non-<code>make</code> system, check <code>[build] output</code> too — cargo puts its
+binary under <code>target/&lt;triple&gt;/release/</code>, not in the tree root.</p>
+<h3>myapp is not a recognisable executable</h3>
+<p>The file at that path exists but is not an ELF, Mach-O or PE binary. Usually
+<code>artifact</code> is pointing at a library, an object file, or a script.</p>
+<h3>&quot;…&quot; uses {tripel}, which is not available for this target</h3>
+<p>A placeholder was misspelled. The full list is in the
+<a href="/atom-builder/reference/manifest-keys/#placeholders">reference</a>. atom fails here rather than
+passing the literal text to your compiler.</p>
+<h3>Cache never hits</h3>
+<p>Something in your build writes into the source tree, so every run changes the
+inputs. Run a build and then <code>git status</code> to see what appeared. See
+<a href="/atom-builder/guide/caching/#if-the-cache-never-hits">Caching</a>.</p>
+<h2>Verify</h2>
+<h3>exited 2, expected 0</h3>
+<p>The binary ran but returned something other than 0. Many programs do this when
+invoked with no arguments — printing usage and exiting non-zero is common.</p>
+<p>Give it something that succeeds:</p>
+<pre><code class="language-toml">[verify]
+args   = &quot;--version&quot;
+expect = &quot;1.2&quot;
+</code></pre>
+<h3>output did not contain &quot;…&quot;</h3>
+<p>The binary ran and exited as expected, but <code>expect</code> was not in its output.
+Either the string is wrong, or the program prints it somewhere <code>expect</code> does
+not see. atom captures both stdout and stderr, so it is usually the former.</p>
+<h3>needs qemu-user or a running docker</h3>
+<p>There is no way to execute this target on this machine. Start Docker, or
+install <code>qemu-user</code> if you are on Linux, or accept the skip.</p>
+<p>If the target is marked <code>verify = true</code>, the skip is a failure by design —
+remove the flag if you do not want that.</p>
+<h3>exited 133, or a list of missing shared libraries</h3>
+<p>The binary and the verification image disagree about libc. A <code>-gnu</code> triple
+produces a glibc binary, which cannot run in the musl-based default image.</p>
+<pre><code class="language-toml">[verify]
+image = &quot;debian:12-slim&quot;
+</code></pre>
+<p>Run <code>atom verify -v</code> to see the actual loader errors.</p>
+<h3>did not finish within 60s</h3>
+<p>The binary hung — often waiting for input that will never come, or running very
+slowly under emulation. Raise <code>[verify] timeout</code>, or point <code>args</code> at something
+that returns immediately.</p>
+<h2>Container builds</h2>
+<h3>setup failed inside alpine:3.20</h3>
+<p>The command in <code>setup</code> failed inside the container. Run with <code>-v</code> to see its
+output; it is usually a wrong package name or no network access.</p>
+<h3>could not start &lt;image&gt;</h3>
+<p>Docker is not running, or the image cannot be pulled, or Docker has no platform
+for that architecture.</p>
+<h2>Publish</h2>
+<h3>atomik-ssg-1.1.0-linux-arm64.tar.gz is missing — run <code>atom package</code> first</h3>
+<p>You are publishing archives that have not been made yet. If you just changed
+<code>version</code>, the old archives are still there under the old name — clear <code>dist/</code>
+and run <code>atom release</code>.</p>
+<h3>set GITHUB_TOKEN (or GH_TOKEN) to publish to GitHub</h3>
+<p>No token in the environment.</p>
+<pre><code class="language-bash">export GITHUB_TOKEN=ghp_...
+</code></pre>
+<h3>GitHub returned 404 looking up tag v1.2.0</h3>
+<p>Not actually about the tag — a 404 from the GitHub API usually means the token
+cannot see the repository. Check the repo name and that the token has
+<strong>Contents: read and write</strong> on it.</p>
+<h3>… is already attached to this release</h3>
+<p>An asset of that name is on the release already. atom stops rather than
+guessing whether you meant to replace it. Delete the old asset, or use a
+different <code>tag</code>.</p>
+<h3>The release points at the wrong code</h3>
+<p>If the tag did not already exist, GitHub created it at the head of your default
+branch — not at your local <code>HEAD</code>. Push first, then publish.</p>
+<h2>Manifest</h2>
+<h3>[build] artifact is required</h3>
+<p>Every manifest needs to know what file the build produces.</p>
+<h3>no targets declared</h3>
+<p>Add at least one <code>[target.&lt;id&gt;]</code> section.</p>
+<h3>[build] system 'bazel' is not one of: make, cargo, go, zig, dotnet, custom</h3>
+<p>Use <code>custom</code> with your own <code>command</code> and <code>output</code>. See
+<a href="/atom-builder/guide/build-systems/#custom">Build systems</a>.</p>
+<h3>[target.x] strategy is container, so it needs an image</h3>
+<p>A container build has nowhere to run without one.</p>
+<h3>atom.toml already exists — nothing was changed</h3>
+<p><code>atom init</code> will not overwrite a manifest. Move or delete the existing one if
+you really want a fresh start.</p>
+<h2>Still stuck</h2>
+<p>Run with <code>-v</code>. Every command shows the underlying tool's own output on failure,
+and <code>verify -v</code> explains each skip. The problem is usually in that output
+rather than in atom's summary of it.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/reference/manifest-keys/">Manifest keys</a>
+                <a class="next" href=""></a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

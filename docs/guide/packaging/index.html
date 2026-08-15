@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packaging</title>
+    <meta name="description" content="Archives and checksums">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Packaging</h1>
+                <p><code>atom package</code> turns what <code>atom build</code> left in <code>dist/</code> into the files people
+download.</p>
+<pre><code>$ atom package
+atomik-ssg 1.1.0 — packaging 5 targets
+
+  ok    atomik-ssg-1.1.0-linux-x86_64.tar.gz    239 KB  3 files
+  ok    atomik-ssg-1.1.0-linux-arm64.tar.gz     227 KB  3 files
+  ok    atomik-ssg-1.1.0-macos-arm64.tar.gz      99 KB  3 files
+  ok    atomik-ssg-1.1.0-macos-x86_64.tar.gz     99 KB  3 files
+  ok    atomik-ssg-1.1.0-windows-x86_64.zip     130 KB  3 files
+  ok    SHA256SUMS                                      sha256
+</code></pre>
+<h2>What ends up where</h2>
+<p><code>dist/</code> has two layers, and only one of them is published:</p>
+<pre><code>dist/
+├── linux-arm64/atomik-ssg                    ← raw binary, intermediate
+├── macos-arm64/atomik-ssg                    ← raw binary, intermediate
+├── atomik-ssg-1.1.0-linux-arm64.tar.gz       ← published
+├── atomik-ssg-1.1.0-macos-arm64.tar.gz       ← published
+└── SHA256SUMS                                ← published
+</code></pre>
+<p>The per-target directories are where <code>build</code> puts the binaries. The archives at
+the top level are what <code>publish</code> uploads.</p>
+<p>Each archive holds a single directory named after the release, so extracting
+one does not scatter files into the user's current directory:</p>
+<pre><code>atomik-ssg-1.1.0-linux-arm64/
+├── atomik-ssg
+├── README.md
+└── LICENSE
+</code></pre>
+<h2>Configuration</h2>
+<pre><code class="language-toml">[package]
+format   = &quot;tar.gz&quot;                # default for non-Windows targets
+include  = &quot;README.md LICENSE&quot;     # extra files, space separated
+checksum = true                    # write SHA256SUMS
+</code></pre>
+<p>Windows targets become <code>.zip</code> automatically, because that is what Windows users
+expect. Override per target if you need to:</p>
+<pre><code class="language-toml">[target.windows-x86_64]
+format = &quot;tar.gz&quot;
+</code></pre>
+<p><code>include</code> paths are relative to your project root. A file named there that does
+not exist fails the packaging step rather than being quietly left out — a
+release missing its licence is worth stopping for.</p>
+<h2>Checksums</h2>
+<p><code>SHA256SUMS</code> is written in the format the standard tools read:</p>
+<pre><code class="language-bash">cd dist
+shasum -a 256 -c SHA256SUMS      # macOS
+sha256sum -c SHA256SUMS          # Linux
+</code></pre>
+<p>It covers every archive in the release. Because it describes the release as a
+whole, <code>atom package -t &lt;one-target&gt;</code> does not write one.</p>
+<h2>Reproducibility</h2>
+<p>Archives are built without embedded timestamps or usernames, so the same inputs
+produce the same bytes. That means a checksum you publish today can be
+reproduced by someone rebuilding from source later.</p>
+<h2>No compression library</h2>
+<p>Both formats are written by atom directly, and the compression comes from
+<code>gzip(1)</code>. Nothing is linked in, which is part of why atom itself
+cross-compiles as easily as it asks your project to.</p>
+<p>Because the archive writers are hand-written, the project's test suite does not
+take atom's word for it: <code>gzip -t</code> and <code>tar -tzf</code> have to accept the tarballs,
+<code>unzip -t</code> has to verify every CRC in the zips, and extracted files have to
+come back byte-for-byte identical with their permissions intact.</p>
+<h2>Version bumps leave the old files</h2>
+<blockquote class="callout callout-warning">
+<p>atom does not delete archives from previous versions — a tool that removes
+files from a release directory on its own is a tool that will one day remove
+the wrong one. After changing <code>version</code>, clear it yourself:</p>
+</blockquote>
+<pre><code class="language-bash">rm -rf dist &amp;&amp; atom release
+</code></pre>
+<p>Otherwise <code>dist/</code> accumulates both versions. <code>SHA256SUMS</code> only ever lists the
+current one, and <code>publish</code> only uploads the current one, but the stray files
+are confusing.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/guide/caching/">Caching</a>
+                <a class="next" href="/atom-builder/guide/publishing/">Publishing</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

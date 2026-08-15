@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build strategies</title>
+    <meta name="description" content="Cross-compiling, containers, and the host&#39;s own compiler">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Build strategies</h1>
+                <p>Separate from <em>what</em> builds your project, a strategy decides <em>how</em> the compiler
+is obtained for one target. It is set per target, and most targets never set it.</p>
+<table>
+<thead><tr><th>Strategy</th><th>What happens</th><th>Cost per target</th></tr></thead>
+<tbody>
+<tr><td><code>zig</code></td><td>Cross-compiled with <code>zig cc</code>. The default.</td><td>seconds</td></tr>
+<tr><td><code>container</code></td><td>Built inside <code>image</code>, in the target's own userland.</td><td>minutes</td></tr>
+<tr><td><code>native</code></td><td>Built with the host's own <code>cc</code>, no target flags.</td><td>seconds</td></tr>
+</tbody>
+</table>
+<h2>Why the default is cross-compilation</h2>
+<p>Emulating a whole machine to compile a program runs roughly an order of
+magnitude slower than compiling it natively, and adds image downloads, boot
+time and VM lifecycle management on top. For a project whose dependencies are
+just libc — which describes most C and Rust and Go programs — none of that buys
+anything the cross-compiler cannot already do.</p>
+<p>So atom cross-compiles by default and treats emulation as a fallback for the
+cases that genuinely need it, plus a <a href="/atom-builder/guide/verification/">verification</a> layer
+for the cases that do not.</p>
+<h2>When a container earns its cost</h2>
+<p>Cross-compilation links against the toolchain's idea of the target. Sometimes
+you need the target's <em>actual</em> userland:</p>
+<ul>
+<li>Building distribution packages that must link against that distro's libraries</li>
+<li><code>configure</code> scripts that compile and then <strong>run</strong> small test programs</li>
+<li>Anything whose build inspects the system it is running on</li>
+</ul>
+<pre><code class="language-toml">[target.alpine-arm64]
+strategy = &quot;container&quot;
+triple   = &quot;aarch64-linux-musl&quot;
+image    = &quot;alpine:3.20&quot;
+setup    = &quot;apk add --no-cache build-base&quot;
+</code></pre>
+<p>The difference shows up in the output, and it is the whole justification:</p>
+<pre><code>  ok    linux-arm64     2.34s   462 KB  static ELF aarch64    &lt;- zig
+  ok    alpine-arm64    2.56s   259 KB  dynamic ELF aarch64   &lt;- container
+</code></pre>
+<p>The zig build is static and self-contained. The container build links against
+Alpine's actual musl, which is what a distribution package should do.</p>
+<p>Docker supplies the emulation, so a <code>linux/amd64</code> target builds on Apple
+silicon with no qemu setup at all.</p>
+<h2>The image must have a toolchain</h2>
+<blockquote class="callout callout-note">
+<p>atom does not install compilers into your image. Either use one that already
+has them — <code>gcc:13</code>, <code>rust:1.80</code>, <code>golang:1.23</code>, or your own — or install
+them with <code>setup</code>:</p>
+</blockquote>
+<pre><code class="language-toml">setup = &quot;apk add --no-cache build-base&quot;
+</code></pre>
+<p><code>setup</code> runs inside the container before the build, in the guest's shell. It is
+the one place a shell is involved anywhere in atom, and it runs your own
+command in the container rather than on your machine.</p>
+<p>The container is started once and driven with <code>docker exec</code>, so packages
+<code>setup</code> installs are still there when the build runs. It is removed afterwards,
+including when the build fails.</p>
+<h2>native</h2>
+<p><code>native</code> builds with whatever <code>cc</code> is on the host and passes no target flags at
+all. It is useful for one thing: producing a build for the machine you are
+sitting at, with its own system libraries, without involving zig.</p>
+<pre><code class="language-toml">[target.host]
+strategy = &quot;native&quot;
+triple   = &quot;aarch64-macos&quot;
+</code></pre>
+<p>The triple is still required, because atom checks the finished binary against
+it. If you set a triple the host cannot produce, the build will be rejected —
+which is the point.</p>
+<h2>Choosing</h2>
+<p>Start with the default. Move a target to <code>container</code> when you hit one of the
+specific reasons above, not preemptively: it costs minutes per target instead
+of seconds, and needs Docker running.</p>
+<h2>What is not here yet</h2>
+<p><code>qemu-system</code> — full machine emulation — is not implemented. It is only needed
+where cross-compilation <em>and</em> containers both fail, which in practice means the
+BSDs: zig ships no libc for them and Docker has no FreeBSD userland.</p>
+<p>The design is written down in the project's <code>ROADMAP.md</code>. It was left unwritten
+rather than written untested, because a VM driver nobody had ever run would be
+the one part of atom that had never been seen to work.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/guide/build-systems/">Build systems</a>
+                <a class="next" href="/atom-builder/guide/verification/">Verification</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

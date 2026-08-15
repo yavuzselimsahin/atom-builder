@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification</title>
+    <meta name="description" content="Proving the binaries actually run">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Verification</h1>
+                <p>Cross-compilation has one real weakness: you end up with a binary nobody has
+executed. <code>atom build</code> proves the right thing was <em>compiled</em>. <code>atom verify</code>
+proves it <em>starts</em>.</p>
+<pre><code>$ atom verify
+  ok    linux-x86_64         8.85s  ran under docker
+  ok    linux-arm64          3.78s  ran under docker
+  ok    macos-arm64          0.01s  ran under host
+  ok    macos-x86_64         1.86s  ran under host
+  skip  windows-x86_64              no wine on this host
+</code></pre>
+<p>Those numbers show the cost of emulation plainly: <code>linux-arm64</code> runs natively
+inside Docker's Linux VM on an Apple silicon Mac, while <code>linux-x86_64</code> has to
+be emulated.</p>
+<h2>Configuring it</h2>
+<pre><code class="language-toml">[verify]
+args    = &quot;--version&quot;     # arguments to pass; default none
+expect  = &quot;myapp 1.2&quot;     # substring the output must contain
+exit    = 0               # expected exit status
+timeout = 60              # seconds before the run is killed
+image   = &quot;alpine:3.20&quot;   # container for emulated Linux runs
+</code></pre>
+<p>Every key is optional. With none of them, atom runs the binary with no
+arguments and checks only that it exits 0.</p>
+<h2>Checking the exit status is not enough</h2>
+<p>Plenty of programs exit 0 while doing nothing useful. The static site generator
+atom was built for prints its usage and exits 0 even for a command it does not
+recognise — a verification that only looked at the status code would happily
+pass a binary that had silently become useless.</p>
+<p>That is what <code>expect</code> is for:</p>
+<pre><code class="language-toml">[verify]
+expect = &quot;static site generator&quot;
+</code></pre>
+<p>If your program has a <code>--version</code> flag that prints something distinctive, that
+is usually the cheapest and most reliable check:</p>
+<pre><code class="language-toml">[verify]
+args   = &quot;--version&quot;
+expect = &quot;1.2.0&quot;
+</code></pre>
+<h2>How a runner is chosen</h2>
+<p>atom picks the cheapest thing that can execute the target.</p>
+<table>
+<thead><tr><th>Runner</th><th>Chosen when</th></tr></thead>
+<tbody>
+<tr><td><code>host</code></td><td>Same OS and architecture — or x86_64 on Apple silicon, which Rosetta handles</td></tr>
+<tr><td><code>qemu</code></td><td>Linux host, different architecture, and <code>qemu-&lt;arch&gt;</code> is on <code>PATH</code></td></tr>
+<tr><td><code>docker</code></td><td>Linux target on a non-Linux host — the container brings its own emulation</td></tr>
+<tr><td><code>wine</code></td><td>Windows target, if wine is installed</td></tr>
+</tbody>
+</table>
+<blockquote class="callout callout-note">
+<p><code>qemu-user</code> needs a Linux host, because it translates Linux system calls. On
+macOS the equivalent is a Linux container, and Docker's own VM already has
+binfmt and qemu registered. That is the only reason Docker appears here.</p>
+</blockquote>
+<p><code>dist/</code> is mounted read-only, so a binary misbehaving under emulation cannot
+alter what is about to be released.</p>
+<h2>Skipped is not failed</h2>
+<p>A machine without Docker should still be able to build. So a target with no
+available runner is reported as <code>skip</code> and the command still exits 0.</p>
+<p>But sometimes a target <em>must</em> be checked. Mark it, and a skip becomes a
+failure:</p>
+<pre><code class="language-toml">[target.linux-arm64]
+triple = &quot;aarch64-linux-musl&quot;
+verify = true
+</code></pre>
+<p>Without that, asking for verification would be silently ignorable, which
+defeats the point of asking.</p>
+<p>Run <code>atom verify -v</code> to see why each skipped target was skipped, and to see the
+output of anything that failed.</p>
+<h2>Matching the libc</h2>
+<p>The verification image has to be able to run your binary. The default,
+<code>alpine:3.20</code>, is musl-based — right for the static musl binaries most C
+projects produce, wrong for anything linked against glibc.</p>
+<blockquote class="callout callout-warning">
+<p>If your triple ends in <code>-gnu</code>, the default musl image cannot run your binary.
+Use a glibc one:</p>
+</blockquote>
+<pre><code class="language-toml">[verify]
+image = &quot;debian:12-slim&quot;
+</code></pre>
+<p>A mismatch shows up as an exit status in the 130s, or a list of missing shared
+libraries under <code>-v</code>.</p>
+<h2>Timeouts</h2>
+<p>A binary that hangs under emulation would otherwise hang atom with it. Each run
+has a deadline — 60 seconds by default — after which the process is killed and
+the target fails with <code>did not finish within 60s</code>.</p>
+<p>Raise it for something genuinely slow, or lower it to catch hangs faster:</p>
+<pre><code class="language-toml">[verify]
+timeout = 10
+</code></pre>
+<h2>Where it sits in the pipeline</h2>
+<p><code>atom release</code> runs build, then verify, then package. Nothing that fails to
+start is ever archived. If you want to package regardless, run the commands
+separately.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/guide/strategies/">Build strategies</a>
+                <a class="next" href="/atom-builder/guide/caching/">Caching</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

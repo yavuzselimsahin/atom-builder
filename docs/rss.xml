@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>atom-builder</title>
+    <link>https://yavuzselimsahin.github.io/atom-builder</link>
+    <description>Cross-platform builds for native projects, from one machine, in seconds.</description>
+    <language>en</language>
+    <atom:link href="https://yavuzselimsahin.github.io/atom-builder/rss.xml" rel="self" type="application/rss+xml" />
+
+  </channel>
+</rss>

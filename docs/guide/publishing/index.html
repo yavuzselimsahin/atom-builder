@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publishing</title>
+    <meta name="description" content="GitHub Releases and your own server">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Publishing</h1>
+                <p><code>atom publish</code> uploads the archives. It is the one stage <code>atom release</code> does
+not run for you, because anything that leaves your machine should be a
+deliberate act.</p>
+<h2>What gets uploaded</h2>
+<p>The archives in <code>dist/</code> and <code>SHA256SUMS</code> — not the raw binaries in
+<code>dist/&lt;target&gt;/</code>. Those are intermediates. See
+<a href="/atom-builder/guide/packaging/#what-ends-up-where">Packaging</a>.</p>
+<h2>GitHub Releases</h2>
+<pre><code class="language-toml">[publish.github]
+repo = &quot;you/your-project&quot;
+tag  = &quot;v1.2.0&quot;          # optional; defaults to v&lt;version&gt;
+</code></pre>
+<pre><code class="language-bash">export GITHUB_TOKEN=ghp_...
+atom publish
+</code></pre>
+<p>atom looks for a release with that tag, creates one if there is none, and
+attaches every archive to it. The result is a normal GitHub release page with
+downloadable assets.</p>
+<p>The token needs permission to create releases on that repository. A fine-grained
+token with <strong>Contents: read and write</strong> is enough.</p>
+<blockquote class="callout callout-warning">
+<p>Push your commits first. If the tag does not exist yet, GitHub creates it at
+the head of your default branch — not at your local <code>HEAD</code>. Publishing with
+unpushed commits gives you a release whose tag points at older code than the
+binaries were built from.</p>
+</blockquote>
+<p>If an asset with the same name is already attached, atom stops and says so
+rather than guessing whether you meant to replace it.</p>
+<h2>Your own server</h2>
+<pre><code class="language-toml">[publish.ssh]
+host = &quot;user@vps&quot;
+path = &quot;/var/www/dl/myproject&quot;
+</code></pre>
+<p>The files are mirrored there with <code>rsync</code>, and the directory is created if it
+does not exist. Nothing is deleted — this is a copy, not a sync, so an older
+release sitting in the same directory stays downloadable.</p>
+<p>Point a web server at that path and you have download links.</p>
+<h3>Publishing locally</h3>
+<p>Leave <code>host</code> out and <code>path</code> is treated as a local directory:</p>
+<pre><code class="language-toml">[publish.ssh]
+path = &quot;/Volumes/releases/myproject&quot;
+</code></pre>
+<p>Useful for a mounted volume or a directory another tool watches.</p>
+<h2>Both at once</h2>
+<p>Configure both sections and both run. Configure neither and <code>atom publish</code>
+tells you so, with the sections to add.</p>
+<h2>Look before you leap</h2>
+<pre><code class="language-bash">atom publish --dry-run
+</code></pre>
+<pre><code>ssh: would upload 3 files to user@vps:/var/www/dl/myproject/
+  myproject-1.2.0-linux-arm64.tar.gz
+  myproject-1.2.0-windows-x86_64.zip
+  SHA256SUMS
+</code></pre>
+<p>Nothing is contacted and nothing is uploaded. Without <code>--dry-run</code>, atom lists
+the same files with their sizes and asks for confirmation. <code>-y</code> skips the
+question, for scripts.</p>
+<h2>How your token is handled</h2>
+<p>The token is passed to <code>curl</code> on standard input, through <code>--config -</code>. It never
+appears in the process arguments, where any other user on the machine could
+read it out of <code>ps</code>, and it is never written to disk.</p>
+<p>A token containing a quote or a newline is refused rather than escaped, since
+anything that would need escaping to pass safely is more likely a mistake than
+a real token.</p>
+<p>atom reads <code>GITHUB_TOKEN</code>, falling back to <code>GH_TOKEN</code>.</p>
+<h2>One thing to know</h2>
+<blockquote class="callout callout-important">
+<p>The GitHub path has been built and tested in every respect except the one
+that needs a real account: token handling, confirmation, dry-run, response
+parsing and command construction are all covered by tests, but no request
+has been sent to the live API from the development machine. The rsync path
+is tested end to end.</p>
+</blockquote>
+<h2>What is not here yet</h2>
+<p><strong>Code signing.</strong> An unsigned Windows executable triggers SmartScreen warnings,
+and unsigned macOS binaries are refused by Gatekeeper. Both can be signed from
+Linux — <code>osslsigncode</code> for Authenticode, <code>rcodesign</code> for Apple notarization —
+and both are planned. Until then, atom ships what your compiler produced.</p>
+<p><strong>Package manager manifests.</strong> Homebrew taps, Scoop buckets and AUR PKGBUILDs
+are generated by hand for now.</p>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/guide/packaging/">Packaging</a>
+                <a class="next" href="/atom-builder/reference/">Reference</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

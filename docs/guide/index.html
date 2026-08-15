@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide</title>
+    <meta name="description" content="How atom works, and how to make it fit your project">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Guide</h1>
+                <p>The <a href="/atom-builder/quickstart/">Quickstart</a> gets a project shipping. This section explains
+what each stage is actually doing, and how to change it when the defaults do
+not fit.</p>
+<h2>The idea in one paragraph</h2>
+<p>Cross-compiling a program is far cheaper than emulating a machine to compile it
+on. Given a toolchain that can target other platforms — which zig, cargo, go
+and .NET all have — one laptop can produce binaries for every platform you ship
+to, in seconds, with no CI and no containers. What has been missing is the
+unglamorous work around that: isolating builds so they cannot corrupt each
+other, checking that what came out is what was asked for, archiving, checksums,
+and getting the result somewhere people can download it. That is atom.</p>
+<h2>The pipeline</h2>
+<pre><code>manifest → plan → BUILD ──→ VERIFY ──→ PACKAGE ──→ PUBLISH
+</code></pre>
+<p>Each stage is a command of its own, and <code>atom release</code> chains the first three.
+The order matters: verification sits before packaging so that a binary which
+fails to start is never archived.</p>
+<h2>Two knobs that sound alike</h2>
+<p>Two settings decide how a target gets built, and they are easy to confuse
+because both sound like &quot;how do I build this&quot;.</p>
+<table>
+<thead><tr><th>Setting</th><th>Scope</th><th>Answers</th></tr></thead>
+<tbody>
+<tr><td><code>[build] system</code></td><td>whole project</td><td><em>What</em> builds it — make, cargo, go, zig, dotnet, or your own script</td></tr>
+<tr><td><code>[target.…] strategy</code></td><td>per target</td><td><em>How</em> the compiler is obtained — cross-compile, a container, or the host's own</td></tr>
+</tbody>
+</table>
+<p>Most projects set neither: the default is <code>make</code>, cross-compiled with zig.</p>
+<h2>What atom will not do</h2>
+<p>It does not replace your build system. There is no Dockerfile to generate, no
+CMake to migrate to, no DSL to learn. atom invokes the build you already have
+with the right arguments, collects what falls out, and checks it. A Makefile
+that respects <code>CC ?= cc</code> is already compatible.</p>
+<p>It also has no service behind it. There is no account, nothing is uploaded
+anywhere you did not configure, and your signing credentials — when that lands
+— stay on your machine.</p>
+<h2>In this section</h2>
+<ul>
+<li><a href="/atom-builder/guide/manifest/">The manifest</a> — the shape of <code>atom.toml</code></li>
+<li><a href="/atom-builder/guide/build-systems/">Build systems</a> — make, cargo, go, zig, dotnet, custom</li>
+<li><a href="/atom-builder/guide/strategies/">Build strategies</a> — cross-compiling, containers, native</li>
+<li><a href="/atom-builder/guide/verification/">Verification</a> — proving the binaries run</li>
+<li><a href="/atom-builder/guide/caching/">Caching</a> — why the second build takes no time</li>
+<li><a href="/atom-builder/guide/packaging/">Packaging</a> — archives and checksums</li>
+<li><a href="/atom-builder/guide/publishing/">Publishing</a> — GitHub Releases and your own server</li>
+</ul>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/quickstart/">Quickstart</a>
+                <a class="next" href="/atom-builder/guide/manifest/">The manifest</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

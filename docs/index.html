@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>atom-builder</title>
+    <meta name="description" content="Cross-platform builds for native projects, from one machine, in seconds.">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>atom-builder</h1>
+                <p class="lede">Cross-platform builds for native projects, from one machine, in seconds.</p>
+
+                <p>Point <code>atom</code> at a project that already builds and
+                it produces a binary for every platform you ship to, checks that
+                each one runs, archives them with checksums, and uploads the
+                result. No CI, no VMs, and containers only where they earn
+                their cost.</p>
+
+<pre><code>$ atom release
+atomik-ssg 1.1.0 — 5 targets
+
+  ok    linux-x86_64         5.30s    473 KB  static ELF x86_64
+  ok    linux-arm64          5.32s    462 KB  static ELF aarch64
+  ok    macos-arm64          5.28s    242 KB  Mach-O aarch64
+  ok    macos-x86_64         7.02s    204 KB  Mach-O x86_64
+  ok    windows-x86_64       5.48s    260 KB  PE x86_64
+
+5/5 succeeded in 7.19s → ./dist/</code></pre>
+
+                <h2>Why it exists</h2>
+
+                <p>Cross-compiling a program is far cheaper than emulating a
+                machine to compile it on. One laptop can build for every
+                platform you ship to, in seconds. What has been missing is the
+                unglamorous work around that — and three ideas in particular.</p>
+
+                <p><strong>It does not replace your build system.</strong>
+                There is no Dockerfile to generate and no DSL to learn. atom
+                invokes the build you already have, whether that is make, cargo,
+                go, zig, dotnet or a script of your own.</p>
+
+                <p><strong>An exit code is not proof.</strong> A build can exit
+                0 and leave behind a binary for the wrong platform entirely.
+                Every artifact is identified by reading its own header and
+                compared against what the target asked for.</p>
+
+                <p><strong>Compiled is not the same as working.</strong>
+                Cross-compilation hands you a binary nobody has ever run. atom
+                runs each one, emulating where it has to.</p>
+
+                <p><a href="/atom-builder/quickstart/">Start with the
+                Quickstart</a>, or <a href="/atom-builder/install/">install it
+                first</a>.</p>
+
+                <h2>Source and issues</h2>
+
+                <p>atom lives at
+                <a href="https://github.com/yavuzselimsahin/atom-builder"
+                   rel="noopener">github.com/yavuzselimsahin/atom-builder</a>.</p>
+
+                <p>Please do open an issue. A build that fails on a project
+                atom has never seen is useful to know about, and so is a page
+                here that is wrong, out of date, or simply did not answer the
+                question you arrived with. Two areas are known to be thin and
+                reports on them are especially welcome: the
+                <a href="/atom-builder/guide/build-systems/">cargo and go build
+                systems</a>, which are written from documentation rather than
+                from use, and
+                <a href="/atom-builder/guide/publishing/">GitHub publishing</a>,
+                which has never been run against the live API.</p>
+            </article>
+            <nav class="contents">
+                <h2>Contents</h2>
+                <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            </nav>
+        </main>
+    </div>
+    <script>
+    (function () {
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>

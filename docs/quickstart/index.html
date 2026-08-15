@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quickstart</title>
+    <meta name="description" content="From an existing project to signed-off archives in five commands">
+    <link rel="stylesheet" href="/atom-builder/style.css">
+    <script>
+    /* Runs before the first paint, so a reader who chose a scheme never
+       sees the other one flash first. */
+    (function () {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/atom-builder/">atom-builder</a>
+        <span class="version">0.1.0</span>
+        <button class="theme-toggle" type="button"
+                aria-label="Switch between light and dark">
+            <span class="in-light">Dark</span>
+            <span class="in-dark">Light</span>
+        </button>
+    </header>
+    <div class="layout">
+        <aside class="sidebar">
+            <ul><li><a href="/atom-builder/install/">Install</a></li><li><a href="/atom-builder/quickstart/">Quickstart</a></li><li><a href="/atom-builder/guide/">Guide</a><ul><li><a href="/atom-builder/guide/manifest/">The manifest</a></li><li><a href="/atom-builder/guide/build-systems/">Build systems</a></li><li><a href="/atom-builder/guide/strategies/">Build strategies</a></li><li><a href="/atom-builder/guide/verification/">Verification</a></li><li><a href="/atom-builder/guide/caching/">Caching</a></li><li><a href="/atom-builder/guide/packaging/">Packaging</a></li><li><a href="/atom-builder/guide/publishing/">Publishing</a></li></ul></li><li><a href="/atom-builder/reference/">Reference</a><ul><li><a href="/atom-builder/reference/commands/">Commands and flags</a></li><li><a href="/atom-builder/reference/manifest-keys/">Manifest keys</a></li></ul></li><li><a href="/atom-builder/troubleshooting/">Troubleshooting</a></li></ul>
+            <footer class="site-footer"><a href="https://github.com/yavuzselimsahin/atomik-ssg">Generated with atomik-ssg</a></footer>
+        </aside>
+        <main>
+            <article>
+                <h1>Quickstart</h1>
+                <p>This walks through a real project end to end. If you have a C, C++, Rust, Go,
+Zig or .NET project that already builds, you can follow along with it.</p>
+<h2>1. Describe the project</h2>
+<p>In your project directory:</p>
+<pre><code class="language-bash">atom init
+</code></pre>
+<pre><code>wrote ./atom.toml
+
+  detected make
+  5 targets, project name &quot;atomik-ssg&quot;
+  artifact &quot;atomik-ssg&quot;, read from the Makefile
+
+Next: check it over, then run `atom targets`.
+</code></pre>
+<p><code>init</code> reads the directory rather than printing a blank template. A
+<code>Cargo.toml</code>, <code>go.mod</code>, <code>build.zig</code>, <code>.csproj</code> or <code>Makefile</code> decides the build
+system, and the triples it writes are spelled the way that system expects. If
+there is a Makefile, it is scanned for the name of the binary it produces.</p>
+<p>It never overwrites an <code>atom.toml</code> that already exists.</p>
+<blockquote class="callout callout-tip">
+<p>Read what it wrote before running anything. <code>init</code> guesses; you know. The
+line worth checking first is <code>artifact</code>, because a wrong one fails every
+target at once.</p>
+</blockquote>
+<h2>2. Check the plan</h2>
+<pre><code class="language-bash">atom targets
+</code></pre>
+<pre><code>atomik-ssg 1.1.0
+
+  ID                 TRIPLE                 EXPECTED         ARTIFACT
+  linux-x86_64       x86_64-linux-musl      ELF x86_64       atomik-ssg
+  linux-arm64        aarch64-linux-musl     ELF aarch64      atomik-ssg  (verify)
+  macos-arm64        aarch64-macos          Mach-O aarch64   atomik-ssg
+  macos-x86_64       x86_64-macos           Mach-O x86_64    atomik-ssg
+  windows-x86_64     x86_64-windows-gnu     PE x86_64        atomik-ssg.exe
+</code></pre>
+<p>Nothing is built. This is the fastest way to check a manifest parses and that
+each target resolves to the binary format you expect.</p>
+<h2>3. Build</h2>
+<pre><code class="language-bash">atom build
+</code></pre>
+<pre><code>atomik-ssg 1.1.0 — 5 targets
+
+  ok    linux-x86_64         5.30s    473 KB  static ELF x86_64
+  ok    linux-arm64          5.32s    462 KB  static ELF aarch64
+  ok    macos-arm64          5.28s    242 KB  Mach-O aarch64
+  ok    macos-x86_64         7.02s    204 KB  Mach-O x86_64
+  ok    windows-x86_64       5.48s    260 KB  PE x86_64
+
+5/5 succeeded in 7.19s → ./dist/
+</code></pre>
+<p>Every target is built in parallel, each in its own copy of your source tree, so
+they cannot overwrite each other's object files. The description on the right
+(<code>static ELF aarch64</code>) is not a guess — atom reads the finished file's own
+header and compares it to what the target asked for.</p>
+<p>Run it again and it will say <code>cached</code>. See <a href="/atom-builder/guide/caching/">Caching</a>.</p>
+<h2>4. Prove the binaries run</h2>
+<pre><code class="language-bash">atom verify
+</code></pre>
+<pre><code>  ok    linux-x86_64         8.85s  ran under docker
+  ok    linux-arm64          3.78s  ran under docker
+  ok    macos-arm64          0.01s  ran under host
+  ok    macos-x86_64         1.86s  ran under host
+  skip  windows-x86_64              no wine on this host
+</code></pre>
+<p>Compiling for a platform you cannot run is cross-compilation's one real
+weakness: you have a binary nobody has ever executed. <code>verify</code> closes that,
+using emulation where it must. Targets with no available runner are skipped
+rather than failed, so a machine without Docker can still build.</p>
+<h2>5. Package</h2>
+<pre><code class="language-bash">atom package
+</code></pre>
+<pre><code>  ok    atomik-ssg-1.1.0-linux-arm64.tar.gz     227 KB  3 files
+  ok    atomik-ssg-1.1.0-windows-x86_64.zip     130 KB  3 files
+  ok    SHA256SUMS                                      sha256
+</code></pre>
+<p>Unix targets get <code>.tar.gz</code>, Windows targets get <code>.zip</code>, each holding one
+<code>&lt;name&gt;-&lt;version&gt;-&lt;target&gt;/</code> directory. Verify them the way your users will:</p>
+<pre><code class="language-bash">cd dist &amp;&amp; shasum -a 256 -c SHA256SUMS
+</code></pre>
+<h2>6. Publish</h2>
+<p>Add a destination to <code>atom.toml</code>:</p>
+<pre><code class="language-toml">[publish.github]
+repo = &quot;you/your-project&quot;
+</code></pre>
+<p>Then look before you leap:</p>
+<pre><code class="language-bash">atom publish --dry-run     # shows exactly what would be uploaded
+export GITHUB_TOKEN=ghp_...
+atom publish               # asks for confirmation first
+</code></pre>
+<h2>The short version</h2>
+<p>Steps 3 to 5 chain into one command:</p>
+<pre><code class="language-bash">atom release
+</code></pre>
+<p>That is build, then verify, then package — each step conditional on the last
+one fully succeeding, so a partial set of archives never gets written.
+Publishing stays separate, because anything that leaves your machine should be
+a deliberate act.</p>
+<h2>What to read next</h2>
+<ul>
+<li><a href="/atom-builder/guide/manifest/">The manifest</a> — how <code>atom.toml</code> is put together</li>
+<li><a href="/atom-builder/guide/build-systems/">Build systems</a> — if <code>init</code> guessed wrong, or you use
+something it does not know</li>
+<li><a href="/atom-builder/reference/commands/">Commands</a> — every command and flag</li>
+</ul>
+
+            </article>
+            <nav class="post-nav">
+                <a class="prev" href="/atom-builder/install/">Install</a>
+                <a class="next" href="/atom-builder/guide/">Guide</a>
+            </nav>
+            <a class="edit" href="">Edit this page</a>
+        </main>
+    </div>
+    <script>
+    (function () {
+        /* cmark emits plain <h2> and <h3>, so a section cannot be linked to
+           directly. Deriving an id from the heading text gives every section a
+           stable anchor without putting markup in the markdown. */
+        document.querySelectorAll('article h2, article h3').forEach(function (h) {
+            if (h.id) return;
+            var slug = h.textContent.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+            if (!slug) return;
+            h.id = slug;
+
+            var link = document.createElement('a');
+            link.className = 'anchor';
+            link.href = '#' + slug;
+            link.setAttribute('aria-label', 'Link to this section');
+            link.textContent = '#';
+            h.appendChild(link);
+        });
+
+        /* The browser resolved the fragment before those ids existed, so a
+           deep link has to be followed again once they do. */
+        if (location.hash) {
+            var target = document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
+
+        var here = location.pathname;
+        document.querySelectorAll('.sidebar > ul a').forEach(function (a) {
+            if (a.getAttribute('href') === here) a.classList.add('active');
+        });
+
+        var root = document.documentElement;
+        var button = document.querySelector('.theme-toggle');
+        if (button) button.addEventListener('click', function () {
+            /* No stored choice yet means we are following the system. */
+            var now = root.getAttribute('data-theme') ||
+                (matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark' : 'light');
+            var next = now === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
+</body>
+</html>
