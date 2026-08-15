@@ -16,35 +16,35 @@ or use one of these.
 ### macOS, Apple silicon
 
 ```bash
-curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-macos-arm64.zip
-unzip atom-builder-1.0.0-macos-arm64.zip
-xattr -d com.apple.quarantine atom-builder-1.0.0-macos-arm64/atom
-mkdir -p ~/.local/bin && mv atom-builder-1.0.0-macos-arm64/atom ~/.local/bin/
+curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.1.0-macos-arm64.zip
+unzip atom-builder-1.1.0-macos-arm64.zip
+xattr -d com.apple.quarantine atom-builder-1.1.0-macos-arm64/atom
+mkdir -p ~/.local/bin && mv atom-builder-1.1.0-macos-arm64/atom ~/.local/bin/
 ```
 
 ### macOS, Intel
 
 ```bash
-curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-macos-x86_64.zip
-unzip atom-builder-1.0.0-macos-x86_64.zip
-xattr -d com.apple.quarantine atom-builder-1.0.0-macos-x86_64/atom
-mkdir -p ~/.local/bin && mv atom-builder-1.0.0-macos-x86_64/atom ~/.local/bin/
+curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.1.0-macos-x86_64.zip
+unzip atom-builder-1.1.0-macos-x86_64.zip
+xattr -d com.apple.quarantine atom-builder-1.1.0-macos-x86_64/atom
+mkdir -p ~/.local/bin && mv atom-builder-1.1.0-macos-x86_64/atom ~/.local/bin/
 ```
 
 ### Linux, x86_64
 
 ```bash
-curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-linux-x86_64.tar.gz
-tar xzf atom-builder-1.0.0-linux-x86_64.tar.gz
-mkdir -p ~/.local/bin && mv atom-builder-1.0.0-linux-x86_64/atom ~/.local/bin/
+curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.1.0-linux-x86_64.tar.gz
+tar xzf atom-builder-1.1.0-linux-x86_64.tar.gz
+mkdir -p ~/.local/bin && mv atom-builder-1.1.0-linux-x86_64/atom ~/.local/bin/
 ```
 
 ### Linux, arm64
 
 ```bash
-curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.0.0-linux-arm64.tar.gz
-tar xzf atom-builder-1.0.0-linux-arm64.tar.gz
-mkdir -p ~/.local/bin && mv atom-builder-1.0.0-linux-arm64/atom ~/.local/bin/
+curl -LO https://github.com/yavuzselimsahin/atom-builder/releases/latest/download/atom-builder-1.1.0-linux-arm64.tar.gz
+tar xzf atom-builder-1.1.0-linux-arm64.tar.gz
+mkdir -p ~/.local/bin && mv atom-builder-1.1.0-linux-arm64/atom ~/.local/bin/
 ```
 
 `~/.local/bin` is on `PATH` on most systems and needs no `sudo`. Check it
