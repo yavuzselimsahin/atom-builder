@@ -68,7 +68,8 @@ atom picks the cheapest thing that can execute the target.
 <tr><td><code>host</code></td><td>Same OS and architecture — or x86_64 on Apple silicon, which Rosetta handles</td></tr>
 <tr><td><code>qemu</code></td><td>Linux host, different architecture, and <code>qemu-&lt;arch&gt;</code> is on <code>PATH</code></td></tr>
 <tr><td><code>docker</code></td><td>Linux target on a non-Linux host — the container brings its own emulation</td></tr>
-<tr><td><code>wine</code></td><td>Windows target, if wine is installed</td></tr>
+<tr><td><code>wine</code></td><td>Windows target, if wine is installed on this machine</td></tr>
+<tr><td><code>docker+wine</code></td><td>Windows target with no host wine, and <code>[verify] wine_image</code> naming one</td></tr>
 </tbody>
 </table>
 
@@ -118,6 +119,50 @@ defeats the point of asking.
 
 Run `atom verify -v` to see why each skipped target was skipped, and to see the
 output of anything that failed.
+
+## Windows targets
+
+Verifying a Windows binary needs wine. If this machine has it, atom uses it
+directly. If not, it can run one in a container instead — but only when told
+which:
+
+```toml
+[verify]
+wine_image = "scottyhardy/docker-wine"
+```
+
+> [!CAUTION]
+> There is deliberately no default here. A wine image is gigabytes, where the
+> Linux ones are megabytes, and pulling that because Docker happened to be
+> running would be exactly the kind of surprise atom tries not to be. Naming
+> the image is the permission.
+
+Without wine and without that key, Windows targets are skipped, and the skip
+says how to turn the container on.
+
+## Leaving the machine as it found it
+
+Docker pulls an image the first time it is used and leaves it behind. Somebody
+who ran one build should not later discover a two-gigabyte image they never
+asked for, so atom removes the images **it** introduced:
+
+```
+removing 1 image atom pulled:
+  debian:12-slim                           removed
+```
+
+An image that was already on the machine is never touched — it was not atom's
+to remove, and something else is probably using it.
+
+`--keep-images` reports them instead of removing them, which is what you want
+while iterating on a manifest:
+
+```
+kept 1 pulled image:
+  debian:12-slim
+```
+
+Containers are always removed, including when a build fails.
 
 ## Matching the libc
 

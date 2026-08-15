@@ -149,6 +149,12 @@ Which options a command accepts:
   <td>Show the underlying tool's own output, and explain each skipped verification.</td>
 </tr>
 <tr>
+  <td><code>--keep-images</code></td>
+  <td>off</td>
+  <td>build, verify, release</td>
+  <td>Leave the images atom pulled on the machine instead of removing them.</td>
+</tr>
+<tr>
   <td><code>-h</code>, <code>--help</code></td>
   <td></td>
   <td>all</td>

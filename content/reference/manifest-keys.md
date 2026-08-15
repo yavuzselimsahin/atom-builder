@@ -59,6 +59,7 @@ One section per target. The id after `target.` names it everywhere: `-t`, the
 <tr><td><code>exit</code></td><td><code>0</code></td><td>Expected exit status.</td></tr>
 <tr><td><code>timeout</code></td><td><code>60</code></td><td>Seconds before the run is killed.</td></tr>
 <tr><td><code>image</code></td><td><code>alpine:3.20</code></td><td>Container image for emulated Linux runs. Must match your target's libc.</td></tr>
+<tr><td><code>wine_image</code></td><td>—</td><td>Container image carrying wine, for Windows targets on a machine without it. No default: the image is gigabytes.</td></tr>
 </tbody>
 </table>
 
